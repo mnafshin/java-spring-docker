@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*.iml
+
+# Build artifacts
+build/
+.gradle/
+gradle-wrapper.jar
+*.class
+*.jar
+*.war
+
+# Dependencies
+.m2/
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+
+# Documentation
+*.md
+docs/
+
+# Testing
+src/test/
+.coverage/
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
