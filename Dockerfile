@@ -1,7 +1,7 @@
-FROM eclipse-temurin:25-jdk-alpine-3.23 AS build
+FROM gradle:9.2.1-jdk25-alpine AS build
 WORKDIR /app
 COPY . .
-RUN ./gradlew clean build
+RUN gradle clean build
 
 
 

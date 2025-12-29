@@ -17,6 +17,9 @@ gradle-wrapper.jar
 *.class
 *.jar
 *.war
+gradlew
+gradlew.bat
+
 
 # Dependencies
 .m2/
