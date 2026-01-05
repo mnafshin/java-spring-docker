@@ -21,13 +21,20 @@ RUN jdeps \
     --class-path 'dependencies/BOOT-INF/lib/*' \
     app.jar > modules.txt
 
-RUN jlink \
-    --add-modules $(cat modules.txt) \
-    --strip-debug \
-    --no-man-pages \
-    --no-header-files \
-    --compress=2 \
-    --output custom-jre
+# include repo "must-have" modules and dedupe/sort with jdeps output
+COPY --from=build /app/musthave_modules.txt ./musthave_modules.txt
+RUN set -eux; \
+    MODULES=$( (tr ',' '\n' < modules.txt; cat musthave_modules.txt) \
+      | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
+      | sort -u \
+      | paste -sd, - ); \
+    echo "Resolved modules: $MODULES" > modules.used; \
+    jlink --add-modules "$MODULES" \
+          --strip-debug \
+          --no-man-pages \
+          --no-header-files \
+          --compress=2 \
+          --output custom-jre
 
 
 # Running Container
