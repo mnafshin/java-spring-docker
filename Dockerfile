@@ -8,15 +8,17 @@ FROM eclipse-temurin:25-jdk@sha256:572fe7b5b3ca8beb3b3aca96a7a88f1f7bc98a3bdffd0
 
 WORKDIR /jre
 
-COPY --from=build /app/build/libs/java-spring-docker-0.0.1-SNAPSHOT.jar app.jar
-RUN jar xf app.jar
+COPY --from=build /app/build/libs/java-spring-docker-*.jar app.jar
+
+RUN java -Djarmode=layertools -jar app.jar extract
+
 
 RUN jdeps \
     --ignore-missing-deps \
     --recursive \
     --multi-release 25 \
     --print-module-deps \
-    --class-path 'BOOT-INF/lib/*' \
+    --class-path 'dependencies/BOOT-INF/lib/*' \
     app.jar > modules.txt
 
 RUN jlink \
@@ -45,11 +47,16 @@ WORKDIR /app
 
 COPY --from=jre-builder /jre/custom-jre $JAVA_HOME
 
-COPY --from=build /app/build/libs/java-spring-docker-0.0.1-SNAPSHOT.jar app.jar
+# COPY --from=build /app/build/libs/java-spring-docker-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=jre-builder /jre/dependencies/ ./
+COPY --from=jre-builder /jre/snapshot-dependencies/ ./
+COPY --from=jre-builder /jre/spring-boot-loader/ ./
+COPY --from=jre-builder /jre/application/ ./
+
 EXPOSE 8080
 
 RUN chown -R javauser:javauser /app
 USER javauser
 
 # -XX:+UseContainerSupport is enabled by default in Java 10 and later
-ENTRYPOINT ["java", "-jar", "-XX:MaxRAMPercentage=75", "-XX:InitialRAMPercentage=50", "-XX:+AlwaysPreTouch" , "-XX:+ExitOnOutOfMemoryError", "-Xlog:gc*,safepoint=info","app.jar"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-XX:InitialRAMPercentage=50", "-XX:+AlwaysPreTouch", "-XX:+ExitOnOutOfMemoryError", "-Xlog:gc*,safepoint=info", "org.springframework.boot.loader.launch.JarLauncher"]
