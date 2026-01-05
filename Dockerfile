@@ -6,7 +6,7 @@ RUN ./gradlew --no-daemon bootJar -x test --no-build-cache
 
 FROM eclipse-temurin:25-jdk@sha256:572fe7b5b3ca8beb3b3aca96a7a88f1f7bc98a3bdffd03784a4568962c1a963a AS jre-builder
 
-WORKDIR /jre
+WORKDIR /app_extracted
 
 COPY --from=build /app/build/libs/java-spring-docker-*.jar app.jar
 
@@ -21,10 +21,12 @@ RUN jdeps \
     --class-path 'dependencies/BOOT-INF/lib/*' \
     app.jar > modules.txt
 
+WORKDIR /jre
+
 # include repo "must-have" modules and dedupe/sort with jdeps output
 COPY --from=build /app/musthave_modules.txt ./musthave_modules.txt
 RUN set -eux; \
-    MODULES=$( (tr ',' '\n' < modules.txt; cat musthave_modules.txt) \
+    MODULES=$( (tr ',' '\n' < /app_extracted/modules.txt; cat musthave_modules.txt) \
       | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
       | sort -u \
       | paste -sd, - ); \
@@ -54,11 +56,10 @@ WORKDIR /app
 
 COPY --from=jre-builder /jre/custom-jre $JAVA_HOME
 
-# COPY --from=build /app/build/libs/java-spring-docker-0.0.1-SNAPSHOT.jar app.jar
-COPY --from=jre-builder /jre/dependencies/ ./
-COPY --from=jre-builder /jre/snapshot-dependencies/ ./
-COPY --from=jre-builder /jre/spring-boot-loader/ ./
-COPY --from=jre-builder /jre/application/ ./
+COPY --from=jre-builder /app_extracted/dependencies/ ./
+COPY --from=jre-builder /app_extracted/snapshot-dependencies/ ./
+COPY --from=jre-builder /app_extracted/spring-boot-loader/ ./
+COPY --from=jre-builder /app_extracted/application/ ./
 
 EXPOSE 8080
 
