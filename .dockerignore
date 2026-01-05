@@ -17,7 +17,6 @@ gradle-wrapper.jar
 *.class
 *.jar
 *.war
-gradlew
 gradlew.bat
 
 
