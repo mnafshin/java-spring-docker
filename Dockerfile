@@ -47,6 +47,30 @@ RUN set -eux; \
           --output custom-jre
 
 
+# AOT cache training stage — runs inside the same OS and custom JRE as the final container
+# so the generated cache is bit-for-bit compatible with the production runtime.
+# -Dspring.context.exit=onRefresh causes Spring Boot 4 to exit cleanly after all beans
+# are loaded (before binding a port), giving the JVM a chance to record every class that
+# application startup touches.
+
+FROM debian:bookworm-slim@sha256:d5d3f9c23164ea16f31852f95bd5959aad1c5e854332fe00f7b3a20fcc9f635c AS aot-trainer
+
+COPY --from=jre-builder /jre/custom-jre /opt/java
+ENV JAVA_HOME=/opt/java
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+WORKDIR /app
+COPY --from=jre-builder /app_extracted/dependencies/ ./
+COPY --from=jre-builder /app_extracted/snapshot-dependencies/ ./
+COPY --from=jre-builder /app_extracted/spring-boot-loader/ ./
+COPY --from=jre-builder /app_extracted/application/ ./
+
+RUN java -XX:AOTCacheOutput=app.aot \
+         -Dspring.context.exit=onRefresh \
+         org.springframework.boot.loader.launch.JarLauncher; \
+    test -f app.aot   # fail the build if the cache was not produced
+
+
 # Running Container
 
 FROM debian:bookworm-slim@sha256:d5d3f9c23164ea16f31852f95bd5959aad1c5e854332fe00f7b3a20fcc9f635c
@@ -70,6 +94,9 @@ COPY --from=jre-builder --chown=javauser:javauser /app_extracted/snapshot-depend
 COPY --from=jre-builder --chown=javauser:javauser /app_extracted/spring-boot-loader/ ./
 COPY --from=jre-builder --chown=javauser:javauser /app_extracted/application/ ./
 
+# Embed the pre-built AOT class-loading cache so the JVM can skip class loading/linking on startup.
+COPY --from=aot-trainer --chown=javauser:javauser /app/app.aot ./app.aot
+
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
@@ -78,4 +105,12 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
 USER javauser
 
 # -XX:+UseContainerSupport is enabled by default in Java 10 and later
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-XX:InitialRAMPercentage=50", "-XX:+AlwaysPreTouch", "-XX:+ExitOnOutOfMemoryError", "-Xlog:gc*,safepoint=info", "org.springframework.boot.loader.launch.JarLauncher"]
+# -XX:AOTCache loads the pre-built class loading/linking cache (JEP 483, Java 24+)
+ENTRYPOINT ["java", \
+            "-XX:AOTCache=app.aot", \
+            "-XX:MaxRAMPercentage=75", \
+            "-XX:InitialRAMPercentage=50", \
+            "-XX:+AlwaysPreTouch", \
+            "-XX:+ExitOnOutOfMemoryError", \
+            "-Xlog:gc*,safepoint=info", \
+            "org.springframework.boot.loader.launch.JarLauncher"]
