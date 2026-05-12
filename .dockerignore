@@ -13,11 +13,11 @@
 # Build artifacts
 build/
 .gradle/
-gradle-wrapper.jar
 *.class
 *.jar
 *.war
 gradlew.bat
+!gradle/wrapper/gradle-wrapper.jar
 
 
 # Dependencies

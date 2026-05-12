@@ -1,14 +1,22 @@
 FROM eclipse-temurin:25-jdk@sha256:572fe7b5b3ca8beb3b3aca96a7a88f1f7bc98a3bdffd03784a4568962c1a963a AS build
 WORKDIR /app
-COPY . .
+
+# Copy wrapper/build files first so dependency resolution stays cached when only source changes.
+COPY gradlew build.gradle settings.gradle ./
+COPY gradle ./gradle
 RUN chmod +x gradlew
+
+COPY src ./src
 RUN ./gradlew --no-daemon bootJar -x test --no-build-cache
+
+# Keep this out of the bootJar cache path; it only affects the jlink stage.
+COPY musthave_modules.txt ./musthave_modules.txt
 
 FROM eclipse-temurin:25-jdk@sha256:572fe7b5b3ca8beb3b3aca96a7a88f1f7bc98a3bdffd03784a4568962c1a963a AS jre-builder
 
 WORKDIR /app_extracted
 
-COPY --from=build /app/build/libs/java-spring-docker-*.jar app.jar
+COPY --from=build /app/build/libs/*-SNAPSHOT.jar app.jar
 
 RUN java -Djarmode=layertools -jar app.jar extract
 
@@ -43,7 +51,6 @@ RUN set -eux; \
 
 FROM debian:bookworm-slim@sha256:d5d3f9c23164ea16f31852f95bd5959aad1c5e854332fe00f7b3a20fcc9f635c
 
-RUN mkdir /app
 RUN addgroup --system javauser && \
     useradd  --system --no-create-home \
     --gid javauser --shell /usr/sbin/nologin \
@@ -56,14 +63,13 @@ WORKDIR /app
 
 COPY --from=jre-builder /jre/custom-jre $JAVA_HOME
 
-COPY --from=jre-builder /app_extracted/dependencies/ ./
-COPY --from=jre-builder /app_extracted/snapshot-dependencies/ ./
-COPY --from=jre-builder /app_extracted/spring-boot-loader/ ./
-COPY --from=jre-builder /app_extracted/application/ ./
+COPY --from=jre-builder --chown=javauser:javauser /app_extracted/dependencies/ ./
+COPY --from=jre-builder --chown=javauser:javauser /app_extracted/snapshot-dependencies/ ./
+COPY --from=jre-builder --chown=javauser:javauser /app_extracted/spring-boot-loader/ ./
+COPY --from=jre-builder --chown=javauser:javauser /app_extracted/application/ ./
 
 EXPOSE 8080
 
-RUN chown -R javauser:javauser /app
 USER javauser
 
 # -XX:+UseContainerSupport is enabled by default in Java 10 and later
