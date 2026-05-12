@@ -51,6 +51,8 @@ RUN set -eux; \
 
 FROM debian:bookworm-slim@sha256:d5d3f9c23164ea16f31852f95bd5959aad1c5e854332fe00f7b3a20fcc9f635c
 
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
 RUN addgroup --system javauser && \
     useradd  --system --no-create-home \
     --gid javauser --shell /usr/sbin/nologin \
@@ -69,6 +71,9 @@ COPY --from=jre-builder --chown=javauser:javauser /app_extracted/spring-boot-loa
 COPY --from=jre-builder --chown=javauser:javauser /app_extracted/application/ ./
 
 EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+  CMD curl -fsS http://localhost:8080/actuator/health/readiness || exit 1
 
 USER javauser
 
