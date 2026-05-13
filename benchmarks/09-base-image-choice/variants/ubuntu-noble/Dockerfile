@@ -45,9 +45,7 @@ RUN set -eux; \
 
 # Stage 3 – Runtime: ubuntu:24.04
 FROM ubuntu:24.04
-RUN apt-get update \
- && apt-get install -y --no-install-recommends curl \
- && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --system --gid 1001 javauser \
  && useradd --system --uid 1001 --gid 1001 \
             --no-create-home --shell /usr/sbin/nologin javauser
@@ -63,8 +61,6 @@ COPY --from=jre-builder --chown=1001:1001 /app_extracted/spring-boot-loader/ ./
 COPY --from=jre-builder --chown=1001:1001 /app_extracted/application/ ./
 EXPOSE 8080
 EXPOSE 8081
-HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-  CMD curl -fsS http://localhost:8081/actuator/health/readiness || exit 1
 USER 1001
 ENTRYPOINT ["java", \
             "-XX:+UseZGC", \

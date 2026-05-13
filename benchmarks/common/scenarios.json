@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "defaults": {
+    "profile": "quick",
+    "runs": {
+      "quick": 3,
+      "full": 10
+    },
+    "native": {
+      "quick": {
+        "duration": "3m",
+        "vus": 20,
+        "runs": 1
+      },
+      "full": {
+        "duration": "60m",
+        "vus": 50,
+        "runs": 2
+      },
+      "cpu_work": 12000
+    }
+  },
+  "scenarios": [
+    { "id": "01-base-image-pinning", "path": "benchmarks/01-base-image-pinning", "type": "standard", "enabled": true },
+    { "id": "02-multi-stage-build-structure", "path": "benchmarks/02-multi-stage-build-structure", "type": "standard", "enabled": true },
+    { "id": "03-buildkit-gradle-cache", "path": "benchmarks/03-buildkit-gradle-cache", "type": "standard", "enabled": true },
+    { "id": "04-custom-jre-jlink", "path": "benchmarks/04-custom-jre-jlink", "type": "standard", "enabled": true },
+    { "id": "05-jep483-aot-cache", "path": "benchmarks/05-jep483-aot-cache", "type": "standard", "enabled": true, "runs": { "quick": 8, "full": 15 } },
+    { "id": "06-runtime-hardening-non-root-tmp", "path": "benchmarks/06-runtime-hardening-non-root-tmp", "type": "standard", "enabled": true },
+    { "id": "07-healthcheck-readiness", "path": "benchmarks/07-healthcheck-readiness", "type": "standard", "enabled": true },
+    { "id": "08-jvm-container-flags", "path": "benchmarks/08-jvm-container-flags", "type": "standard", "enabled": true },
+    { "id": "09-base-image-choice", "path": "benchmarks/09-base-image-choice", "type": "standard", "enabled": true },
+    { "id": "10-native-vs-jvm", "path": "benchmarks/10-native-vs-jvm", "type": "native", "enabled": true }
+  ]
+}
+

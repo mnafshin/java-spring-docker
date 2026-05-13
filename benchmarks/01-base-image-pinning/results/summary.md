@@ -8,8 +8,8 @@
 
 | Variant | Runs | Build avg (ms) | Startup avg (ms) | Startup p95 (ms) | Image MB | Success |
 |---|---:|---:|---:|---:|---:|---:|
-| digest-pinned | 5 | 615 | 1269 | 1455 | 103.02 | 100.0% |
-| tag-only | 5 | 6581 | 1431 | 1443 | 103.23 | 100.0% |
+| digest-pinned | 3 | 7264 | 1431 | 1437 | 103.69 | 100.0% |
+| tag-only | 3 | 6267 | 1415 | 1438 | 103.91 | 100.0% |
 
 ## Reproduce or extend
 

@@ -48,6 +48,7 @@ Available profiles:
 - `enterprise`: ubi9-minimal profile for OpenShift/RHEL contexts
 - `simplest`: eclipse-temurin-jre profile (no jlink)
 - `coldstart`: balanced + JEP 483 AOT cache
+- `native`: native-image container build/run path
 
 ### Override any profile option explicitly
 
@@ -58,6 +59,20 @@ python3 tools/dockerfile_wizard.py \
   --runtime-base debian-bookworm-slim \
   --no-jlink \
   --output Dockerfile.generated
+```
+
+### Generate native-image Dockerfile
+
+```bash
+cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+python3 tools/dockerfile_wizard.py --profile native --output Dockerfile.generated
+```
+
+or explicitly:
+
+```bash
+cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+python3 tools/dockerfile_wizard.py --profile balanced --native-image --output Dockerfile.generated
 ```
 
 ## Suggested profiles
