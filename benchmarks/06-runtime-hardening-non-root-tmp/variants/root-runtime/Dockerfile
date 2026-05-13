@@ -28,6 +28,7 @@ COPY musthave_modules.txt ./musthave_modules.txt
 FROM eclipse-temurin:25-jdk@sha256:572fe7b5b3ca8beb3b3aca96a7a88f1f7bc98a3bdffd03784a4568962c1a963a AS jre-builder
 
 WORKDIR /app_extracted
+
 COPY --from=build /app/build/libs/*-SNAPSHOT.jar app.jar
 RUN java -Djarmode=layertools -jar app.jar extract
 
@@ -99,10 +100,6 @@ LABEL org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.title="demo-java-spring-docker" \
       org.opencontainers.image.description="Spring Boot 4 / Java 25 – JEP 483 AOT warm container"
 
-RUN apt-get update \
- && apt-get install -y --no-install-recommends curl \
- && rm -rf /var/lib/apt/lists/*
-
 # Fixed UID/GID so Kubernetes securityContext.runAsUser can be pinned
 # and stays consistent across nodes and image rebuilds.
 # Root-runtime variant for benchmark comparison
@@ -136,8 +133,6 @@ EXPOSE 8080
 EXPOSE 8081
 
 # Docker-native health check; Kubernetes overrides this with its own probe spec.
-HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-  CMD curl -fsS http://localhost:8081/actuator/health/readiness || exit 1
 
 # JVM flags for containerised workloads:
 #  -XX:AOTCache                   load JEP 483 class-loading cache (Java 24+)

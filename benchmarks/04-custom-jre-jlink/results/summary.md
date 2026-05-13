@@ -8,8 +8,8 @@
 
 | Variant | Runs | Build avg (ms) | Startup avg (ms) | Startup p95 (ms) | Image MB | Success |
 |---|---:|---:|---:|---:|---:|---:|
-| with-jlink-runtime | 5 | 641 | 1364 | 1428 | 103.02 | 100.0% |
-| without-jlink-runtime | 5 | 3682 | 1435 | 1916 | 147.04 | 100.0% |
+| with-jlink-runtime | 3 | 614 | 1419 | 1448 | 103.69 | 100.0% |
+| without-jlink-runtime | 3 | 1357 | 1501 | 1911 | 147.66 | 100.0% |
 
 ## Reproduce or extend
 

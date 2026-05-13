@@ -8,8 +8,8 @@
 
 | Variant | Runs | Build avg (ms) | Startup avg (ms) | Startup p95 (ms) | Image MB | Success |
 |---|---:|---:|---:|---:|---:|---:|
-| simple-two-stage | 5 | 7178 | 1336 | 1466 | 134.56 | 100.0% |
-| specialized-multi-stage | 5 | 607 | 1367 | 1428 | 103.02 | 100.0% |
+| simple-two-stage | 3 | 14982 | 1358 | 1473 | 134.81 | 100.0% |
+| specialized-multi-stage | 3 | 576 | 1417 | 1429 | 103.69 | 100.0% |
 
 ## Reproduce or extend
 

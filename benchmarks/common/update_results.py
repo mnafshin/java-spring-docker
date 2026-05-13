@@ -13,11 +13,12 @@ SCENARIO_WEIGHTS = {
     "02-multi-stage-build-structure":    (0.3, 0.4, 0.3),
     "03-buildkit-gradle-cache":          (0.9, 0.0, 0.1),
     "04-custom-jre-jlink":               (0.1, 0.5, 0.4),
-    "05-jep483-aot-cache":               (0.1, 0.1, 0.8),
+    "05-jep483-aot-cache":              (0.2, 0.1, 0.7),
     "06-runtime-hardening-non-root-tmp": (0.0, 0.0, 0.0),
     "07-healthcheck-readiness":          (0.0, 0.0, 0.0),
     "08-jvm-container-flags":            (0.0, 0.1, 0.9),
     "09-base-image-choice":              (0.2, 0.5, 0.3),
+    "10-native-vs-jvm":                  (0.2, 0.3, 0.5),
 }
 
 ALWAYS_BEST_PRACTICE = {
@@ -39,9 +40,14 @@ SCENARIO_NOTES = {
         "> Alpine uses musl libc — the build stage must use `eclipse-temurin:25-jdk-alpine`."
     ),
     "05-jep483-aot-cache": (
-        "> **Context:** The AOT cache is architecture-specific and regenerated at build time.\n"
-        "> A marginal startup difference here reflects a warm Docker layer cache run.\n"
-        "> The benefit is more pronounced at cold JVM start on a fresh container host."
+        "> **Context:** This scenario is now the canonical complex-app AOT benchmark.\n"
+        "> Use at least 15 runs (`--profile full`) for stable startup deltas.\n"
+        "> Compare startup gain against added build complexity before rollout."
+    ),
+    "10-native-vs-jvm": (
+        "> **Context:** Native typically wins on cold start and memory footprint, while JVM can\n"
+        "> win on long-run throughput due to JIT optimization. Use your 60-minute run results\n"
+        "> and endpoint mix to decide per service, not globally."
     ),
 }
 
@@ -191,6 +197,18 @@ def main():
     for csv_path in sorted(BENCH.glob("*/results/raw.csv")):
         rows = load_csv(csv_path)
         if not rows:
+            continue
+        if 'image_bytes' not in rows[0] and 'image_mb' in rows[0]:
+            for row in rows:
+                image_mb = row.get('image_mb', '-1')
+                if image_mb in ('', '-1', None):
+                    row['image_bytes'] = '-1'
+                else:
+                    row['image_bytes'] = str(int(float(image_mb) * 1024 * 1024))
+        required = {'variant', 'build_ms', 'startup_ms', 'image_bytes', 'status'}
+        if not required.issubset(rows[0].keys()):
+            missing = ", ".join(sorted(required - set(rows[0].keys())))
+            print(f"\n[{csv_path.parent.parent.name}] skipped: unsupported schema (missing: {missing})")
             continue
         scenario = csv_path.parent.parent.name
         vstats = variant_stats(rows)

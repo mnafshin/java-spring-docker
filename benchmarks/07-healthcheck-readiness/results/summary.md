@@ -8,8 +8,8 @@
 
 | Variant | Runs | Build avg (ms) | Startup avg (ms) | Startup p95 (ms) | Image MB | Success |
 |---|---:|---:|---:|---:|---:|---:|
-| with-readiness-healthcheck | 6 | 1984 | 1294 | 1458 | 103.02 | 100.0% |
-| without-healthcheck | 6 | 619 | 1288 | 1423 | 103.02 | 100.0% |
+| with-readiness-healthcheck | 3 | 595 | 1432 | 1452 | 103.69 | 100.0% |
+| without-healthcheck | 3 | 601 | 1423 | 1442 | 103.69 | 100.0% |
 
 ## Reproduce or extend
 

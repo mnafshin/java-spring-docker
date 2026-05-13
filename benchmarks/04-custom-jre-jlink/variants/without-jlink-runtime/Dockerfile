@@ -99,12 +99,9 @@ LABEL org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.title="demo-java-spring-docker" \
       org.opencontainers.image.description="Spring Boot 4 / Java 25 – JEP 483 AOT warm container"
 
-RUN apt-get update \
- && apt-get install -y --no-install-recommends curl \
- && rm -rf /var/lib/apt/lists/*
-
 # Fixed UID/GID so Kubernetes securityContext.runAsUser can be pinned
 # and stays consistent across nodes and image rebuilds.
+
 RUN groupadd --system --gid 1001 javauser \
  && useradd  --system --uid 1001 --gid 1001 \
              --no-create-home --shell /usr/sbin/nologin \
@@ -136,8 +133,6 @@ EXPOSE 8080
 EXPOSE 8081
 
 # Docker-native health check; Kubernetes overrides this with its own probe spec.
-HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-  CMD curl -fsS http://localhost:8081/actuator/health/readiness || exit 1
 
 USER 1001
 

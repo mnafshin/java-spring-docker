@@ -99,10 +99,6 @@ LABEL org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.title="demo-java-spring-docker" \
       org.opencontainers.image.description="Spring Boot 4 / Java 25 – JEP 483 AOT warm container"
 
-RUN apt-get update \
- && apt-get install -y --no-install-recommends curl \
- && rm -rf /var/lib/apt/lists/*
-
 # Fixed UID/GID so Kubernetes securityContext.runAsUser can be pinned
 # and stays consistent across nodes and image rebuilds.
 RUN groupadd --system --gid 1001 javauser \
