@@ -1,0 +1,11 @@
+date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes
+2026-05-13,01-base-image-pinning,digest-pinned,1,616,108022529,1447,ok,
+2026-05-13,01-base-image-pinning,digest-pinned,2,621,108022529,1435,ok,
+2026-05-13,01-base-image-pinning,digest-pinned,3,638,108022529,1164,ok,
+2026-05-13,01-base-image-pinning,digest-pinned,4,598,108022529,1153,ok,
+2026-05-13,01-base-image-pinning,digest-pinned,5,602,108022529,1144,ok,
+2026-05-13,01-base-image-pinning,tag-only,1,29034,108239829,1441,ok,
+2026-05-13,01-base-image-pinning,tag-only,2,1403,108239829,1413,ok,
+2026-05-13,01-base-image-pinning,tag-only,3,822,108239829,1438,ok,
+2026-05-13,01-base-image-pinning,tag-only,4,741,108239829,1421,ok,
+2026-05-13,01-base-image-pinning,tag-only,5,905,108239829,1442,ok,
