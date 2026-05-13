@@ -1,0 +1,4 @@
+date,environment,variant,run,startup_ms,notes
+YYYY-MM-DD,local,baseline,1,,
+YYYY-MM-DD,local,aot,1,,
+

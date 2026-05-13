@@ -1,0 +1,24 @@
+:root {
+  --r-main-font-size: 30px;
+}
+
+.reveal code {
+  font-size: 0.82em;
+}
+
+.reveal pre code {
+  max-height: 420px;
+}
+
+.reveal h3 {
+  text-transform: none;
+}
+
+.reveal table {
+  font-size: 0.62em;
+}
+
+.reveal th,
+.reveal td {
+  padding: 0.28em 0.45em;
+}

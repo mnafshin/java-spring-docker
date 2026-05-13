@@ -1,0 +1,11 @@
+date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes
+2026-05-13,06-runtime-hardening-non-root-tmp,hardened-non-root,1,718,108022529,1416,ok,
+2026-05-13,06-runtime-hardening-non-root-tmp,hardened-non-root,2,589,108022529,1159,ok,
+2026-05-13,06-runtime-hardening-non-root-tmp,hardened-non-root,3,599,108022529,1158,ok,
+2026-05-13,06-runtime-hardening-non-root-tmp,hardened-non-root,4,589,108022529,1150,ok,
+2026-05-13,06-runtime-hardening-non-root-tmp,hardened-non-root,5,593,108022529,1139,ok,
+2026-05-13,06-runtime-hardening-non-root-tmp,root-runtime,1,2622,108021047,1416,ok,
+2026-05-13,06-runtime-hardening-non-root-tmp,root-runtime,2,587,108021047,1163,ok,
+2026-05-13,06-runtime-hardening-non-root-tmp,root-runtime,3,613,108021047,1147,ok,
+2026-05-13,06-runtime-hardening-non-root-tmp,root-runtime,4,586,108021047,1138,ok,
+2026-05-13,06-runtime-hardening-non-root-tmp,root-runtime,5,599,108021047,1131,ok,

@@ -1,0 +1,32 @@
+date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes
+
+2026-05-13,09-base-image-choice,alpine,1,26742,69101834,1711,ok,
+2026-05-13,09-base-image-choice,alpine,2,959,69101834,1677,ok,
+2026-05-13,09-base-image-choice,alpine,3,802,69101834,1420,ok,
+2026-05-13,09-base-image-choice,debian-bookworm-slim,1,6431,95157478,1419,ok,
+2026-05-13,09-base-image-choice,debian-bookworm-slim,2,960,95157478,1411,ok,
+2026-05-13,09-base-image-choice,debian-bookworm-slim,3,842,95157478,1402,ok,
+2026-05-13,09-base-image-choice,eclipse-temurin-jre,1,6196,141049085,2061,ok,
+2026-05-13,09-base-image-choice,eclipse-temurin-jre,2,869,141049085,1423,ok,
+2026-05-13,09-base-image-choice,eclipse-temurin-jre,3,893,141049085,1680,ok,
+2026-05-13,09-base-image-choice,ubi9-minimal,1,-1,-1,-1,build_failed,docker build failed
+2026-05-13,09-base-image-choice,ubi9-minimal,2,-1,-1,-1,build_failed,docker build failed
+2026-05-13,09-base-image-choice,ubi9-minimal,3,-1,-1,-1,build_failed,docker build failed
+2026-05-13,09-base-image-choice,ubuntu-noble,1,12426,93918522,1417,ok,
+2026-05-13,09-base-image-choice,ubuntu-noble,2,892,93918522,1427,ok,
+2026-05-13,09-base-image-choice,ubuntu-noble,3,793,93918522,1437,ok,
+2026-05-13,09-base-image-choice,alpine,1,1151,69101834,1435,ok,
+2026-05-13,09-base-image-choice,alpine,2,828,69101834,1436,ok,
+2026-05-13,09-base-image-choice,alpine,3,809,69101834,1413,ok,
+2026-05-13,09-base-image-choice,debian-bookworm-slim,1,969,95157478,1421,ok,
+2026-05-13,09-base-image-choice,debian-bookworm-slim,2,824,95157478,1439,ok,
+2026-05-13,09-base-image-choice,debian-bookworm-slim,3,782,95157478,1438,ok,
+2026-05-13,09-base-image-choice,eclipse-temurin-jre,1,935,141049085,1429,ok,
+2026-05-13,09-base-image-choice,eclipse-temurin-jre,2,828,141049085,1181,ok,
+2026-05-13,09-base-image-choice,eclipse-temurin-jre,3,803,141049085,1415,ok,
+2026-05-13,09-base-image-choice,ubi9-minimal,1,956,100777581,1438,ok,
+2026-05-13,09-base-image-choice,ubi9-minimal,2,771,100777581,1158,ok,
+2026-05-13,09-base-image-choice,ubi9-minimal,3,823,100777581,1404,ok,
+2026-05-13,09-base-image-choice,ubuntu-noble,1,1232,93918522,1445,ok,
+2026-05-13,09-base-image-choice,ubuntu-noble,2,834,93918522,1165,ok,
+2026-05-13,09-base-image-choice,ubuntu-noble,3,825,93918522,1423,ok,
