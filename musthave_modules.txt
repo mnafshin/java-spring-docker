@@ -1,0 +1,8 @@
+java.base
+java.logging
+java.sql
+java.naming
+java.management
+java.security.jgss
+jdk.crypto.ec
+jdk.unsupported

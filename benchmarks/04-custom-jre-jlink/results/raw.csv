@@ -1,0 +1,11 @@
+date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes
+2026-05-13,04-custom-jre-jlink,with-jlink-runtime,1,763,108022529,1423,ok,
+2026-05-13,04-custom-jre-jlink,with-jlink-runtime,2,614,108022529,1426,ok,
+2026-05-13,04-custom-jre-jlink,with-jlink-runtime,3,572,108022529,1422,ok,
+2026-05-13,04-custom-jre-jlink,with-jlink-runtime,4,650,108022529,1152,ok,
+2026-05-13,04-custom-jre-jlink,with-jlink-runtime,5,605,108022529,1397,ok,
+2026-05-13,04-custom-jre-jlink,without-jlink-runtime,1,15138,154187305,1719,ok,
+2026-05-13,04-custom-jre-jlink,without-jlink-runtime,2,890,154187305,1413,ok,
+2026-05-13,04-custom-jre-jlink,without-jlink-runtime,3,793,154187305,1438,ok,
+2026-05-13,04-custom-jre-jlink,without-jlink-runtime,4,788,154187305,1198,ok,
+2026-05-13,04-custom-jre-jlink,without-jlink-runtime,5,801,154187305,1409,ok,

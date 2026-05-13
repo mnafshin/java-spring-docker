@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Dockerfile Is Burning Money</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" id="theme">
+  <link rel="stylesheet" href="assets/custom.css">
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+      <section>
+        <h2>Your Dockerfile Is Burning Money</h2>
+        <h3>9 Benchmarks That Cut Build Time, Image Size, and Startup Risk</h3>
+        <p>Java 25 + Spring Boot 4 + real measurements (not opinions)</p>
+      </section>
+
+      <section>
+        <h3>Why this talk is worth your time</h3>
+        <ul>
+          <li>One line in Dockerfile changed build time from 7.1s to 0.9s average</li>
+          <li>Build layout changed runtime image from 134.56 MB to 103.02 MB</li>
+          <li>Base image choice ranged from 65.90 MB to 134.51 MB</li>
+          <li>We found where "best practice" is policy vs where it is truly metric-driven</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3>Benchmark method</h3>
+        <ul>
+          <li>Scenarios under <code>benchmarks/01...</code> to <code>benchmarks/09...</code></li>
+          <li>Each scenario compares variants with only one major change</li>
+          <li>Metrics: build avg, startup avg/p95, image MB, success rate</li>
+          <li>CSVs and recommendations generated from scripts in <code>benchmarks/common/</code></li>
+        </ul>
+      </section>
+
+      <section>
+        <h3>Winners at a glance</h3>
+        <table>
+          <thead>
+            <tr><th>Scenario</th><th>Winner</th><th>Main reason</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>BuildKit cache</td><td>with-buildkit-cache</td><td>Build avg 917ms vs 7187ms</td></tr>
+            <tr><td>Multi-stage layout</td><td>specialized-multi-stage</td><td>103.02 MB vs 134.56 MB</td></tr>
+            <tr><td>jlink runtime</td><td>with-jlink-runtime</td><td>103.02 MB vs 147.04 MB</td></tr>
+            <tr><td>AOT cache</td><td>without-aot-cache (here)</td><td>Context-dependent (host + cache state)</td></tr>
+            <tr><td>Base image</td><td>depends on goal</td><td>Alpine smallest, Ubuntu/Debian faster startup</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h3>Biggest measurable win: BuildKit cache mount</h3>
+        <pre><code data-trim>RUN --mount=type=cache,sharing=locked,target=/root/.gradle \
+    ./gradlew --no-daemon dependencies -q</code></pre>
+        <ul>
+          <li><strong>with cache:</strong> build avg <strong>917 ms</strong></li>
+          <li><strong>without cache:</strong> build avg <strong>7187 ms</strong></li>
+          <li>Same image size (103.02 MB), same success rate</li>
+          <li>CI impact is huge when cache is shared via buildx cache backend</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3>Multi-stage specialization pays off</h3>
+        <ul>
+          <li><strong>Specialized multi-stage:</strong> 103.02 MB, build avg 607 ms</li>
+          <li><strong>Simple two-stage:</strong> 134.56 MB, build avg 7178 ms</li>
+          <li>Startup roughly comparable; image and build cost are not</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3>Custom jlink runtime is a clear win</h3>
+        <ul>
+          <li><strong>with jlink:</strong> 103.02 MB, startup avg 1364 ms</li>
+          <li><strong>without jlink:</strong> 147.04 MB, startup avg 1435 ms</li>
+          <li>Recommendation: keep <code>jdeps + jlink</code> unless platform constraints block it</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3>JEP 483 AOT cache: benchmark by your environment</h3>
+        <ul>
+          <li>This run: <code>without-aot-cache</code> startup avg 1222 ms vs 1288 ms</li>
+          <li>Difference is small and sensitive to host/cache state</li>
+          <li>AOT cache remains valuable for cold-start-heavy workloads</li>
+          <li>Rule: enable only when measured in your real deployment context</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3>Base image benchmark (09)</h3>
+        <table>
+          <thead>
+            <tr><th>Variant</th><th>Image MB</th><th>Startup avg</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>alpine</td><td>65.90</td><td>1515 ms</td><td>smallest, musl caveats</td></tr>
+            <tr><td>ubuntu-noble</td><td>89.57</td><td>1386 ms</td><td>LTS + good startup</td></tr>
+            <tr><td>debian-bookworm-slim</td><td>90.75</td><td>1422 ms</td><td>balanced default</td></tr>
+            <tr><td>ubi9-minimal</td><td>96.11</td><td>1333 ms</td><td>enterprise/OpenShift fit</td></tr>
+            <tr><td>eclipse-temurin-jre</td><td>134.51</td><td>1532 ms</td><td>simple, largest</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h3>Policy decisions vs metric decisions</h3>
+        <ul>
+          <li><strong>Policy-driven:</strong> digest pinning, non-root runtime, readiness healthcheck</li>
+          <li><strong>Metric-driven:</strong> build cache, stage layout, jlink, base image, AOT</li>
+          <li>This distinction prevents unsafe trade-offs for tiny speed gains</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3>What to adopt now</h3>
+        <ol>
+          <li>Keep digest pinning + non-root + readiness healthcheck</li>
+          <li>Keep specialized multi-stage + BuildKit cache mount</li>
+          <li>Keep jlink runtime unless portability issues appear</li>
+          <li>Choose base image by org context (size vs support model)</li>
+          <li>Benchmark AOT/JVM flags in production-like memory limits before deciding</li>
+        </ol>
+      </section>
+
+      <section>
+        <h3>New feature: Dockerfile Wizard Profiles</h3>
+        <ul>
+          <li>Generate a fit-for-purpose Dockerfile in one command</li>
+          <li>Profiles map directly to benchmark-backed requirements</li>
+          <li>Explicit CLI flags can override any profile default</li>
+        </ul>
+        <pre><code data-trim>python3 tools/dockerfile_wizard.py --profile balanced --output Dockerfile.generated</code></pre>
+      </section>
+
+      <section>
+        <h3>Profile map</h3>
+        <table>
+          <thead>
+            <tr><th>Profile</th><th>Best for</th><th>Core choices</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>balanced</td><td>default production</td><td>debian + buildkit + jlink</td></tr>
+            <tr><td>smallest</td><td>minimal image size</td><td>alpine + jlink</td></tr>
+            <tr><td>enterprise</td><td>OpenShift / RHEL</td><td>ubi9-minimal + jlink</td></tr>
+            <tr><td>simplest</td><td>lowest maintenance</td><td>eclipse-temurin-jre (no jlink)</td></tr>
+            <tr><td>coldstart</td><td>startup-sensitive workloads</td><td>balanced + AOT cache</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h3>Takeaways by audience</h3>
+        <ul>
+          <li><strong>Dev team:</strong> own Dockerfile performance and reproducibility (cache mount, multi-stage, jlink)</li>
+          <li><strong>SRE team:</strong> enforce policy invariants (non-root, readiness health semantics, digest pinning)</li>
+          <li><strong>Platform team:</strong> provide shared CI build cache and benchmark pipelines as a platform capability</li>
+          <li><strong>Everyone:</strong> treat AOT/JVM/base-image choices as benchmark decisions, not ideology</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3>Re-run everything in your environment</h3>
+        <pre><code data-trim>cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+bash benchmarks/common/run_scenario.sh benchmarks/03-buildkit-gradle-cache 10
+python3 benchmarks/common/recommend.py benchmarks/*/results/raw.csv</code></pre>
+        <p>All benchmark artifacts are in <code>benchmarks/</code> and <code>docs/deep-dives/</code>.</p>
+      </section>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      slideNumber: true,
+      transition: "slide"
+    });
+  </script>
+</body>
+</html>
+

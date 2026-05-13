@@ -1,0 +1,11 @@
+date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes
+2026-05-13,02-multi-stage-build-structure,simple-two-stage,1,31954,141092505,1463,ok,
+2026-05-13,02-multi-stage-build-structure,simple-two-stage,2,1591,141092505,1428,ok,
+2026-05-13,02-multi-stage-build-structure,simple-two-stage,3,758,141092505,1153,ok,
+2026-05-13,02-multi-stage-build-structure,simple-two-stage,4,758,141092505,1459,ok,
+2026-05-13,02-multi-stage-build-structure,simple-two-stage,5,828,141092505,1175,ok,
+2026-05-13,02-multi-stage-build-structure,specialized-multi-stage,1,591,108022529,1417,ok,
+2026-05-13,02-multi-stage-build-structure,specialized-multi-stage,2,610,108022529,1426,ok,
+2026-05-13,02-multi-stage-build-structure,specialized-multi-stage,3,614,108022529,1408,ok,
+2026-05-13,02-multi-stage-build-structure,specialized-multi-stage,4,610,108022529,1423,ok,
+2026-05-13,02-multi-stage-build-structure,specialized-multi-stage,5,612,108022529,1160,ok,

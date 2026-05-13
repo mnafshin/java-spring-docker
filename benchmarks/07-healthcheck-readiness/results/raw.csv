@@ -1,0 +1,13 @@
+date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes
+2026-05-13,07-healthcheck-readiness,with-readiness-healthcheck,1,8854,108022529,1425,ok,
+2026-05-13,07-healthcheck-readiness,without-healthcheck,1,677,108022079,1420,ok,
+2026-05-13,07-healthcheck-readiness,with-readiness-healthcheck,1,690,108022529,1432,ok,
+2026-05-13,07-healthcheck-readiness,with-readiness-healthcheck,2,603,108022529,1448,ok,
+2026-05-13,07-healthcheck-readiness,with-readiness-healthcheck,3,562,108022529,1150,ok,
+2026-05-13,07-healthcheck-readiness,with-readiness-healthcheck,4,603,108022529,1149,ok,
+2026-05-13,07-healthcheck-readiness,with-readiness-healthcheck,5,592,108022529,1158,ok,
+2026-05-13,07-healthcheck-readiness,without-healthcheck,1,617,108022079,1152,ok,
+2026-05-13,07-healthcheck-readiness,without-healthcheck,2,637,108022079,1412,ok,
+2026-05-13,07-healthcheck-readiness,without-healthcheck,3,595,108022079,1415,ok,
+2026-05-13,07-healthcheck-readiness,without-healthcheck,4,585,108022079,1156,ok,
+2026-05-13,07-healthcheck-readiness,without-healthcheck,5,604,108022079,1173,ok,

@@ -1,0 +1,11 @@
+date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes
+2026-05-13,03-buildkit-gradle-cache,with-buildkit-cache,1,2044,108022529,1416,ok,
+2026-05-13,03-buildkit-gradle-cache,with-buildkit-cache,2,695,108022529,1442,ok,
+2026-05-13,03-buildkit-gradle-cache,with-buildkit-cache,3,603,108022529,1157,ok,
+2026-05-13,03-buildkit-gradle-cache,with-buildkit-cache,4,564,108022529,1154,ok,
+2026-05-13,03-buildkit-gradle-cache,with-buildkit-cache,5,678,108022529,1144,ok,
+2026-05-13,03-buildkit-gradle-cache,without-buildkit-cache,1,33139,108022529,1172,ok,
+2026-05-13,03-buildkit-gradle-cache,without-buildkit-cache,2,904,108022529,1418,ok,
+2026-05-13,03-buildkit-gradle-cache,without-buildkit-cache,3,611,108022529,1419,ok,
+2026-05-13,03-buildkit-gradle-cache,without-buildkit-cache,4,636,108022529,1455,ok,
+2026-05-13,03-buildkit-gradle-cache,without-buildkit-cache,5,643,108022529,1444,ok,

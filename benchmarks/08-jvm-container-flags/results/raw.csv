@@ -1,0 +1,11 @@
+date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes
+2026-05-13,08-jvm-container-flags,defaults-like,1,693,108022185,1446,ok,
+2026-05-13,08-jvm-container-flags,defaults-like,2,618,108022185,1151,ok,
+2026-05-13,08-jvm-container-flags,defaults-like,3,614,108022185,1150,ok,
+2026-05-13,08-jvm-container-flags,defaults-like,4,614,108022185,1163,ok,
+2026-05-13,08-jvm-container-flags,defaults-like,5,638,108022185,1141,ok,
+2026-05-13,08-jvm-container-flags,tuned-flags,1,593,108022529,1435,ok,
+2026-05-13,08-jvm-container-flags,tuned-flags,2,603,108022529,1169,ok,
+2026-05-13,08-jvm-container-flags,tuned-flags,3,602,108022529,1423,ok,
+2026-05-13,08-jvm-container-flags,tuned-flags,4,609,108022529,1170,ok,
+2026-05-13,08-jvm-container-flags,tuned-flags,5,606,108022529,1178,ok,
