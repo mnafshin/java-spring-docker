@@ -16,9 +16,22 @@ if [[ ! -d "$SCENARIO_DIR/variants" ]]; then
 fi
 
 RAW_CSV="$SCENARIO_DIR/results/raw.csv"
+EXPECTED_HEADER="date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes,host,docker_version,run_profile"
+LEGACY_HEADER="date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes"
+HOST_NAME="$(hostname -s 2>/dev/null || hostname)"
+DOCKER_VERSION="$(docker --version 2>/dev/null | sed 's/,//g' | awk '{print $3}' || echo unknown)"
+RUN_PROFILE="${RUN_PROFILE:-manual}"
 mkdir -p "$SCENARIO_DIR/results"
+if [[ -f "$RAW_CSV" ]]; then
+  current_header="$(head -n 1 "$RAW_CSV" | tr -d '\r')"
+  if [[ "$current_header" == "$LEGACY_HEADER" ]]; then
+    backup_csv="$SCENARIO_DIR/results/raw.legacy.$(date +%s).csv"
+    mv "$RAW_CSV" "$backup_csv"
+    echo "Archived legacy CSV header to: $backup_csv"
+  fi
+fi
 if [[ ! -f "$RAW_CSV" ]]; then
-  echo "date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes" > "$RAW_CSV"
+  echo "$EXPECTED_HEADER" > "$RAW_CSV"
 fi
 
 scenario_name="$(basename "$SCENARIO_DIR")"
@@ -95,13 +108,13 @@ PY
 
       docker stop "$cname" >/dev/null || true
 
-      printf '%s,%s,%s,%s,%s,%s,%s,%s,%s
-'         "$(date +%F)" "$scenario_name" "$variant" "$run" "$build_ms" "$image_bytes" "$startup_ms" "$status" "$notes"         >> "$RAW_CSV"
+      printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+        "$(date +%F)" "$scenario_name" "$variant" "$run" "$build_ms" "$image_bytes" "$startup_ms" "$status" "$notes" "$HOST_NAME" "$DOCKER_VERSION" "$RUN_PROFILE" >> "$RAW_CSV"
 
       echo "run ${run}: build=${build_ms}ms size=${image_bytes} startup=${startup_ms} status=${status}"
     else
-      printf '%s,%s,%s,%s,%s,%s,%s,%s,%s
-'         "$(date +%F)" "$scenario_name" "$variant" "$run" "-1" "-1" "-1" "build_failed" "docker build failed"         >> "$RAW_CSV"
+      printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+        "$(date +%F)" "$scenario_name" "$variant" "$run" "-1" "-1" "-1" "build_failed" "docker build failed" "$HOST_NAME" "$DOCKER_VERSION" "$RUN_PROFILE" >> "$RAW_CSV"
 
       echo "run ${run}: build failed"
     fi

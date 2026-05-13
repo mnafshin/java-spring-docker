@@ -65,8 +65,6 @@ COPY --from=jre-builder --chown=1001:1001 /app_extracted/spring-boot-loader/ ./
 COPY --from=jre-builder --chown=1001:1001 /app_extracted/application/ ./
 EXPOSE 8080
 EXPOSE 8081
-HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-  CMD curl -fsS http://localhost:8081/actuator/health/readiness || exit 1
 USER 1001
 ENTRYPOINT ["java", \
             "-XX:+UseZGC", \

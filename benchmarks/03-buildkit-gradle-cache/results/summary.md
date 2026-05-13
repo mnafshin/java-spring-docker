@@ -8,8 +8,8 @@
 
 | Variant | Runs | Build avg (ms) | Startup avg (ms) | Startup p95 (ms) | Image MB | Success |
 |---|---:|---:|---:|---:|---:|---:|
-| with-buildkit-cache | 5 | 917 | 1263 | 1460 | 103.02 | 100.0% |
-| without-buildkit-cache | 5 | 7187 | 1382 | 1463 | 103.02 | 100.0% |
+| with-buildkit-cache | 3 | 584 | 1418 | 1421 | 103.69 | 100.0% |
+| without-buildkit-cache | 3 | 12728 | 1420 | 1424 | 103.69 | 100.0% |
 
 ## Reproduce or extend
 

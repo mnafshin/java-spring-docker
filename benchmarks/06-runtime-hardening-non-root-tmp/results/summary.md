@@ -8,8 +8,8 @@
 
 | Variant | Runs | Build avg (ms) | Startup avg (ms) | Startup p95 (ms) | Image MB | Success |
 |---|---:|---:|---:|---:|---:|---:|
-| hardened-non-root | 5 | 618 | 1204 | 1596 | 103.02 | 100.0% |
-| root-runtime | 5 | 1001 | 1199 | 1593 | 103.02 | 100.0% |
+| hardened-non-root | 3 | 602 | 1420 | 1441 | 103.69 | 100.0% |
+| root-runtime | 3 | 1409 | 1424 | 1426 | 103.69 | 100.0% |
 
 ## Reproduce or extend
 

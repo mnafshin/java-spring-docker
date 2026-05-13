@@ -51,6 +51,7 @@ RUN set -eux; \
 FROM redhat/ubi9-minimal
 RUN microdnf install -y --setopt=tsflags=nodocs shadow-utils \
  && microdnf clean all
+
 RUN groupadd --system --gid 1001 javauser \
  && useradd --system --uid 1001 --gid 1001 \
             --no-create-home --shell /usr/sbin/nologin javauser
@@ -66,9 +67,6 @@ COPY --from=jre-builder --chown=1001:1001 /app_extracted/spring-boot-loader/ ./
 COPY --from=jre-builder --chown=1001:1001 /app_extracted/application/ ./
 EXPOSE 8080
 EXPOSE 8081
-HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-  CMD curl -fsS http://localhost:8081/actuator/health/readiness || \
-      wget -qO- http://localhost:8081/actuator/health/readiness || exit 1
 USER 1001
 ENTRYPOINT ["java", \
             "-XX:+UseZGC", \

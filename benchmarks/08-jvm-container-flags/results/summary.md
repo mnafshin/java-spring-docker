@@ -8,8 +8,8 @@
 
 | Variant | Runs | Build avg (ms) | Startup avg (ms) | Startup p95 (ms) | Image MB | Success |
 |---|---:|---:|---:|---:|---:|---:|
-| defaults-like | 5 | 635 | 1210 | 1644 | 103.02 | 100.0% |
-| tuned-flags | 5 | 603 | 1275 | 1443 | 103.02 | 100.0% |
+| defaults-like | 3 | 665 | 1156 | 1162 | 103.69 | 100.0% |
+| tuned-flags | 3 | 616 | 1420 | 1426 | 103.69 | 100.0% |
 
 > **Context:** On a developer machine with ample RAM the tuned flags may show marginal
 > extra overhead from ZGC initialization. The real benefit appears under memory-constrained

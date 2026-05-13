@@ -2,17 +2,17 @@
 
 ## Recommendation
 
-✅ **Recommended:** `ubi9-minimal` — metric-driven (primary weight: **image size**)
+✅ **Recommended:** `debian-bookworm-slim` — metric-driven (primary weight: **image size**)
 
 ## Results table
 
 | Variant | Runs | Build avg (ms) | Startup avg (ms) | Startup p95 (ms) | Image MB | Success |
 |---|---:|---:|---:|---:|---:|---:|
-| alpine | 6 | 5215 | 1515 | 1733 | 65.90 | 100.0% |
-| debian-bookworm-slim | 6 | 1801 | 1422 | 1440 | 90.75 | 100.0% |
-| eclipse-temurin-jre | 6 | 1754 | 1532 | 2309 | 134.51 | 100.0% |
-| ubi9-minimal | 6 | 850 | 1333 | 1465 | 96.11 | 50.0% |
-| ubuntu-noble | 6 | 2834 | 1386 | 1450 | 89.57 | 100.0% |
+| alpine | 3 | 6300 | 1426 | 1452 | 66.08 | 100.0% |
+| debian-bookworm-slim | 3 | 2546 | 1411 | 1415 | 90.93 | 100.0% |
+| eclipse-temurin-jre | 3 | 979 | 1423 | 1439 | 134.64 | 100.0% |
+| ubi9-minimal | 3 | 1541 | 1421 | 1433 | 96.29 | 100.0% |
+| ubuntu-noble | 3 | 1569 | 1430 | 1465 | 89.75 | 100.0% |
 
 > **Context:** ubi9-minimal 50% success rate reflects 3 build failures before the
 > Dockerfile was fixed. Successful runs are valid. Re-run for a clean baseline.

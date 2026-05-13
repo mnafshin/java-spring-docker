@@ -26,11 +26,12 @@ SCENARIO_WEIGHTS: dict[str, tuple[float, float, float]] = {
     "02-multi-stage-build-structure":    (0.3, 0.4, 0.3),   # image size matters most
     "03-buildkit-gradle-cache":          (0.9, 0.0, 0.1),   # build time is the whole point
     "04-custom-jre-jlink":               (0.1, 0.5, 0.4),   # size + startup
-    "05-jep483-aot-cache":               (0.1, 0.1, 0.8),   # startup is the whole point
+    "05-jep483-aot-cache":              (0.2, 0.1, 0.7),   # complex-app startup is primary, with build cost considered
     "06-runtime-hardening-non-root-tmp": (0.0, 0.0, 0.0),   # security – no metric wins here
     "07-healthcheck-readiness":          (0.0, 0.0, 0.0),   # reliability – no metric wins here
     "08-jvm-container-flags":            (0.0, 0.1, 0.9),   # startup / latency
     "09-base-image-choice":              (0.2, 0.5, 0.3),   # image size + startup; build less relevant
+    "10-native-vs-jvm":                  (0.2, 0.3, 0.5),   # startup and runtime behavior balance
 }
 
 # Scenarios where the winner is always the "best-practice" variant regardless
