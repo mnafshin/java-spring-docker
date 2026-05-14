@@ -109,6 +109,8 @@ def _run_standard_scenario(project_root: Path, scenario_dir: Path, runs: int, ru
     _ensure_csv(raw_csv)
     host = socket.gethostname()
     docker_version = _docker_version()
+    scenario = scenario_dir.name
+    print(f"\n=== Scenario: {scenario} (runs={runs}, profile={run_profile}) ===")
 
     for index, variant_dir in enumerate(sorted((scenario_dir / "variants").glob("*"))):
         if not variant_dir.is_dir():
@@ -116,10 +118,10 @@ def _run_standard_scenario(project_root: Path, scenario_dir: Path, runs: int, ru
         dockerfile = variant_dir / "Dockerfile"
         if not dockerfile.exists():
             continue
-        scenario = scenario_dir.name
         variant = variant_dir.name
         image_tag = _tag_for(scenario, variant)
         host_port = str(19081 + index)
+        print(f"-- variant: {variant}")
 
         for run_number in range(1, runs + 1):
             build_start = time.time()
@@ -149,6 +151,7 @@ def _run_standard_scenario(project_root: Path, scenario_dir: Path, runs: int, ru
                         run_profile,
                     ],
                 )
+                print(f"run {run_number}: build failed")
                 continue
 
             image_size = subprocess.run(
@@ -197,20 +200,32 @@ def _run_standard_scenario(project_root: Path, scenario_dir: Path, runs: int, ru
                     run_profile,
                 ],
             )
+            print(
+                f"run {run_number}: build={build_ms}ms size={image_size} "
+                f"startup={startup_ms} status={status}"
+            )
 
 
 def run_benchmarks(project_root: Path, build_tool: str, profile: str, extra_args: list[str]) -> int:
     options = parse_runner_args(profile=profile, extra_args=extra_args)
+    print(f"Using profile: {options.profile}")
+    print(f"Project root: {project_root}")
+    print(f"Build tool: {build_tool}")
     scenarios = default_scenarios(build_tool=build_tool, java_version=options.java_version)
+    print(f"Scenarios loaded: {len(scenarios)}")
 
     for scenario in scenarios:
         if scenario.scenario_type == "native":
             if options.skip_native:
+                print(f"Skipping native scenario: {scenario.id}")
                 continue
+            print(f"Skipping native scenario in internal runner: {scenario.id}")
             continue
         scenario_dir = project_root / "benchmarks" / scenario.id
         if not (scenario_dir / "variants").exists():
+            print(f"Skipping missing scenario directory: {scenario.id}")
             continue
         runs = options.runs_override or _default_runs_for(profile=options.profile, scenario_id=scenario.id)
         _run_standard_scenario(project_root=project_root, scenario_dir=scenario_dir, runs=runs, run_profile=options.profile)
+    print("\nAll done. CSV results were updated.")
     return 0

@@ -3,6 +3,8 @@ from __future__ import annotations
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
@@ -61,19 +63,23 @@ class InternalFlowTests(unittest.TestCase):
             with patch("springdocker.benchmarks.runner._wait_readiness", return_value=100), patch(
                 "springdocker.benchmarks.runner.subprocess.run", side_effect=fake_run
             ):
-                code = cmd_benchmark_run(
-                    project_root=root,
-                    build_tool=None,
-                    profile="quick",
-                    extra_args=["--runs", "1", "--skip-native"],
-                    use_legacy_scripts=False,
-                )
+                stdout = StringIO()
+                with redirect_stdout(stdout):
+                    code = cmd_benchmark_run(
+                        project_root=root,
+                        build_tool=None,
+                        profile="quick",
+                        extra_args=["--runs", "1", "--skip-native"],
+                        use_legacy_scripts=False,
+                    )
             self.assertEqual(code, 0)
             raw_csv = root / "benchmarks" / "01-base-image-pinning" / "results" / "raw.csv"
             self.assertTrue(raw_csv.exists())
             self.assertIn("01-base-image-pinning", raw_csv.read_text(encoding="utf-8"))
+            self.assertIn("=== Scenario: 01-base-image-pinning", stdout.getvalue())
+            self.assertIn("run 1:", stdout.getvalue())
+            self.assertIn("Skipping native scenario: 10-native-vs-jvm", stdout.getvalue())
 
 
 if __name__ == "__main__":
     unittest.main()
-
