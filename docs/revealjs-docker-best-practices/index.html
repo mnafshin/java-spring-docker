@@ -168,31 +168,7 @@
       </section>
 
       <section>
-        <h3>Security caveats found in the current stack</h3>
-        <ul>
-          <li>Actuator is exposed on management port <code>8081</code>; split-port design helps, but it is <strong>not</strong> access control by itself</li>
-          <li>Current app has no Spring Security layer; keep <code>8081</code> internal and protect it with cluster policy</li>
-          <li>Dependency review flagged Spring Boot <code>4.0.1</code> Actuator advisories; presentation baseline should upgrade to <code>4.0.4+</code> before production rollout</li>
-          <li>For the main Kubernetes-targeted image, prefer Kubernetes probes and omit Docker <code>HEALTHCHECK</code> entirely rather than spawning a second JVM or adding probe tools</li>
-        </ul>
-      </section>
-
-      <section>
-        <h3>What to adopt now</h3>
-        <ol>
-          <li>Keep digest pinning, but also pin the <strong>deployment image reference</strong> by digest — not <code>:latest</code></li>
-          <li>Keep non-root + read-only root FS + dropped capabilities + seccomp</li>
-          <li>Keep specialized multi-stage + BuildKit cache mount + <code>jlink</code> — these are proven wins</li>
-          <li>Use <code>debian-bookworm-slim</code> as the current balanced default base image (87.64 MB)</li>
-          <li>Use Kubernetes readiness/liveness probes; don't add Docker <code>HEALTHCHECK</code> to the main image</li>
-          <li>AOT cache shows <strong>80 ms startup improvement</strong> at 15 runs — worth enabling for restart-heavy services</li>
-          <li>JVM flag tuning showed <strong>no benefit</strong> on this host (defaults-like won at 1,370 ms); re-measure under memory pressure</li>
-          <li>Upgrade Spring Boot / Actuator patch level before calling the stack production-ready</li>
-        </ol>
-      </section>
-
-      <section>
-        <h3>New feature: Dockerfile Wizard Profiles</h3>
+        <h3>Dockerfile Wizard Profiles</h3>
         <ul>
           <li>Generate a fit-for-purpose Dockerfile in one command</li>
           <li>Profiles map directly to benchmark-backed requirements</li>
@@ -242,7 +218,7 @@
 
       <section>
         <h3>Re-run everything in your environment</h3>
-        <pre><code data-trim>cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+        <pre><code data-trim>cd /Path_TO_PROJECT/java-spring-docker
 bash benchmarks/common/run_all_benchmarks.sh --profile quick
 bash benchmarks/common/run_all_benchmarks.sh --profile full
 
