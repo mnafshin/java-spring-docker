@@ -2,9 +2,9 @@
 from pathlib import Path
 import re
 
-ROOT = Path('/Users/afshin/IdeaProjects/sandbox/java-spring-docker')
+ROOT = Path(__file__).resolve().parents[1]
 BENCH = ROOT / 'benchmarks'
-BASE = (ROOT / 'Dockerfile').read_text()
+BASE = (ROOT / 'Dockerfile').read_text(encoding='utf-8')
 
 
 def strip_digests(text: str) -> str:
@@ -344,9 +344,9 @@ python3 benchmarks/common/analyze_results.py benchmarks/05-jep483-aot-cache/resu
 ```
 '''
 
-    (common / 'run_scenario.sh').write_text(run_script)
-    (common / 'analyze_results.py').write_text(analyze_script)
-    (common / 'README.md').write_text(common_readme)
+    (common / 'run_scenario.sh').write_text(run_script, encoding='utf-8')
+    (common / 'analyze_results.py').write_text(analyze_script, encoding='utf-8')
+    (common / 'README.md').write_text(common_readme, encoding='utf-8')
 
 
 def write_scenarios() -> None:
@@ -381,18 +381,20 @@ python3 benchmarks/common/analyze_results.py benchmarks/{name}/results/raw.csv
 - Change only one variable per scenario.
 '''
 
-        (scenario_dir / 'README.md').write_text(scenario_readme)
+        (scenario_dir / 'README.md').write_text(scenario_readme, encoding='utf-8')
         (results_dir / 'raw.csv').write_text(
-            'date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes\n'
+            'date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes\n',
+            encoding='utf-8',
         )
         (results_dir / 'summary.md').write_text(
-            '# Benchmark summary\n\nPaste the markdown table output from `analyze_results.py` here.\n'
+            '# Benchmark summary\n\nPaste the markdown table output from `analyze_results.py` here.\n',
+            encoding='utf-8',
         )
 
         for variant_name, dockerfile_content in cfg['variants'].items():
             variant_dir = variants_dir / variant_name
             variant_dir.mkdir(parents=True, exist_ok=True)
-            (variant_dir / 'Dockerfile').write_text(dockerfile_content)
+            (variant_dir / 'Dockerfile').write_text(dockerfile_content, encoding='utf-8')
 
 
 def main() -> None:

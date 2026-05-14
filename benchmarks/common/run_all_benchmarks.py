@@ -6,7 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path('/Users/afshin/IdeaProjects/sandbox/java-spring-docker')
+ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MANIFEST = ROOT / 'benchmarks' / 'common' / 'scenarios.json'
 
 
@@ -16,7 +16,7 @@ def run(cmd: list[str], env: dict[str, str] | None = None) -> None:
 
 
 def load_manifest(path: Path) -> dict:
-    return json.loads(path.read_text())
+    return json.loads(path.read_text(encoding='utf-8'))
 
 
 def select_runs(item: dict, profile: str, runs_override: int | None, default_runs: dict) -> int:
@@ -43,6 +43,10 @@ def main() -> int:
 
     defaults = data['defaults']
     profile = args.profile or defaults.get('profile', 'quick')
+    if profile not in defaults['runs']:
+        raise SystemExit(f"Profile '{profile}' missing from defaults.runs in {manifest_path}")
+    if profile not in defaults['native']:
+        raise SystemExit(f"Profile '{profile}' missing from defaults.native in {manifest_path}")
     default_runs = defaults['runs']
     native_defaults = defaults['native'][profile]
     native_cpu_work = int(args.native_cpu_work or defaults['native']['cpu_work'])

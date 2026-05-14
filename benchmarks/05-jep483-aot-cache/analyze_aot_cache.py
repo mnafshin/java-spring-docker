@@ -12,24 +12,35 @@ import statistics
 from pathlib import Path
 from collections import defaultdict
 
-def analyze_scenario(csv_file):
+def _parse_startup_ms(value: str | None) -> float | None:
+    if value in (None, '', '-1'):
+        return None
+    try:
+        parsed = float(value)
+        return parsed if parsed >= 0 else None
+    except ValueError:
+        return None
+
+
+def analyze_scenario(csv_file: str) -> dict[str, list[float]] | None:
     """Parse results CSV and compute statistics"""
     if not Path(csv_file).exists():
         print(f"Error: {csv_file} not found")
         return None
 
-    results = defaultdict(list)
+    results: dict[str, list[float]] = defaultdict(list)
 
-    with open(csv_file, 'r') as f:
+    with open(csv_file, 'r', newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
             variant = row.get('variant', 'unknown')
-            startup_ms = float(row.get('startup_ms', 0))
-            results[variant].append(startup_ms)
+            startup_ms = _parse_startup_ms(row.get('startup_ms'))
+            if startup_ms is not None:
+                results[variant].append(startup_ms)
 
     return results
 
-def print_analysis(results):
+def print_analysis(results: dict[str, list[float]]) -> None:
     """Print detailed analysis of results"""
     print("\n" + "="*80)
     print("AOT CACHE COMPLEX BENCHMARK ANALYSIS")
@@ -78,13 +89,14 @@ def print_analysis(results):
         without = variant_stats['without-aot-cache']['mean']
         with_cache = variant_stats['with-aot-cache']['mean']
         improvement_ms = without - with_cache
-        improvement_pct = (improvement_ms / without) * 100
+        improvement_pct = (improvement_ms / without) * 100 if without else 0.0
+        speedup = (without / with_cache) if with_cache else 0.0
 
         print(f"\nComplex Application:")
         print(f"  Without AOT:   {without:.2f}ms")
         print(f"  With AOT:      {with_cache:.2f}ms")
         print(f"  Improvement:   {improvement_ms:.2f}ms ({improvement_pct:.1f}%)")
-        print(f"  Speedup:       {without/with_cache:.2f}x faster")
+        print(f"  Speedup:       {speedup:.2f}x faster")
 
     if 'minimal-app' in variant_stats:
         minimal = variant_stats['minimal-app']['mean']
@@ -101,6 +113,7 @@ def print_analysis(results):
     print("STARTUP DISTRIBUTION")
     print("-"*80)
 
+    max_mean = max(s['mean'] for s in variant_stats.values())
     for variant in sorted(variant_stats.keys()):
         stats = variant_stats[variant]
         mean = stats['mean']
@@ -108,12 +121,12 @@ def print_analysis(results):
 
         # Create a simple histogram
         bar_width = 30
-        normalized = mean / max(s['mean'] for s in variant_stats.values())
+        normalized = mean / max_mean if max_mean else 0.0
         bar = "█" * int(bar_width * normalized)
 
         print(f"{variant:25} {bar:30} {mean:7.2f}ms ±{stdev:5.2f}ms")
 
-def main():
+def main() -> None:
     if len(sys.argv) < 2:
         print("Usage: analyze_aot_cache.py <results_csv>")
         sys.exit(1)

@@ -1,31 +1,15 @@
 #!/usr/bin/env python3
-import csv
 import statistics
 from collections import defaultdict
 from pathlib import Path
 
-ROOT = Path('/Users/afshin/IdeaProjects/sandbox/java-spring-docker')
+from csv_metrics import parse_non_negative_int, percentile_95, read_csv_rows
+from metrics_table import VARIANT_TABLE_HEADER, variant_table_row
+from recommendation_policy import ALWAYS_BEST_PRACTICE, SCENARIO_WEIGHTS
+
+ROOT = Path(__file__).resolve().parents[2]
 BENCH = ROOT / 'benchmarks'
 DEEP = ROOT / 'docs' / 'deep-dives'
-
-SCENARIO_WEIGHTS = {
-    "01-base-image-pinning":             (0.1, 0.1, 0.1),
-    "02-multi-stage-build-structure":    (0.3, 0.4, 0.3),
-    "03-buildkit-gradle-cache":          (0.9, 0.0, 0.1),
-    "04-custom-jre-jlink":               (0.1, 0.5, 0.4),
-    "05-jep483-aot-cache":              (0.2, 0.1, 0.7),
-    "06-runtime-hardening-non-root-tmp": (0.0, 0.0, 0.0),
-    "07-healthcheck-readiness":          (0.0, 0.0, 0.0),
-    "08-jvm-container-flags":            (0.0, 0.1, 0.9),
-    "09-base-image-choice":              (0.2, 0.5, 0.3),
-    "10-native-vs-jvm":                  (0.2, 0.3, 0.5),
-}
-
-ALWAYS_BEST_PRACTICE = {
-    "01-base-image-pinning":             "digest-pinned",
-    "06-runtime-hardening-non-root-tmp": "hardened-non-root",
-    "07-healthcheck-readiness":          "with-readiness-healthcheck",
-}
 
 SCENARIO_NOTES = {
     "08-jvm-container-flags": (
@@ -52,52 +36,51 @@ SCENARIO_NOTES = {
 }
 
 
-def load_csv(path):
-    rows = []
-    with open(path) as f:
-        for r in csv.DictReader(f):
-            rows.append(r)
-    return rows
+def load_csv(path: Path) -> list[dict[str, str]]:
+    return read_csv_rows(path)
 
 
-def variant_stats(rows):
-    groups = defaultdict(list)
+def variant_stats(rows: list[dict[str, str]]) -> list[dict[str, float | int | str | None]]:
+    groups: dict[str, list[dict[str, str]]] = defaultdict(list)
     for r in rows:
         groups[r['variant']].append(r)
-    result = []
+    result: list[dict[str, float | int | str | None]] = []
     for variant, items in groups.items():
-        build = [int(r['build_ms']) for r in items if int(r['build_ms']) >= 0]
-        startup = [int(r['startup_ms']) for r in items if int(r['startup_ms']) >= 0]
-        images = [int(r['image_bytes']) for r in items if int(r['image_bytes']) >= 0]
+        build = [value for r in items if (value := parse_non_negative_int(r.get('build_ms'))) is not None]
+        startup = [value for r in items if (value := parse_non_negative_int(r.get('startup_ms'))) is not None]
+        images = [value for r in items if (value := parse_non_negative_int(r.get('image_bytes'))) is not None]
         ok = sum(1 for r in items if r['status'] == 'ok')
+        startup_p95 = percentile_95(startup)
         result.append({
             'variant': variant,
             'runs': len(items),
             'build_avg': statistics.mean(build) if build else None,
             'startup_avg': statistics.mean(startup) if startup else None,
-            'startup_p95': statistics.quantiles(startup, n=20)[18] if len(startup) >= 2 else (startup[0] if startup else None),
+            'startup_p95': startup_p95,
             'image_mb': statistics.mean(images) / (1024 * 1024) if images else None,
             'success_pct': ok / len(items) * 100,
         })
     return result
 
 
-def stats_table(vstats):
-    lines = [
-        "| Variant | Runs | Build avg (ms) | Startup avg (ms) | Startup p95 (ms) | Image MB | Success |",
-        "|---|---:|---:|---:|---:|---:|---:|",
-    ]
+def stats_table(vstats: list[dict[str, float | int | str | None]]) -> str:
+    lines = list(VARIANT_TABLE_HEADER)
     for v in sorted(vstats, key=lambda x: x['variant']):
-        ba = f"{v['build_avg']:.0f}" if v['build_avg'] is not None else "-"
-        sa = f"{v['startup_avg']:.0f}" if v['startup_avg'] is not None else "-"
-        sp = f"{v['startup_p95']:.0f}" if v['startup_p95'] is not None else "-"
-        im = f"{v['image_mb']:.2f}" if v['image_mb'] is not None else "-"
-        sr = f"{v['success_pct']:.1f}%"
-        lines.append(f"| {v['variant']} | {v['runs']} | {ba} | {sa} | {sp} | {im} | {sr} |")
+        lines.append(
+            variant_table_row(
+                variant=str(v['variant']),
+                runs=int(v['runs']),
+                build_avg=v['build_avg'],
+                startup_avg=v['startup_avg'],
+                startup_p95=v['startup_p95'],
+                image_mb=v['image_mb'],
+                success_pct=float(v['success_pct']),
+            )
+        )
     return "\n".join(lines)
 
 
-def find_winner(vstats, scenario):
+def find_winner(vstats: list[dict[str, float | int | str | None]], scenario: str) -> tuple[str, str]:
     if scenario in ALWAYS_BEST_PRACTICE:
         return ALWAYS_BEST_PRACTICE[scenario], "policy"
 
@@ -125,7 +108,7 @@ def find_winner(vstats, scenario):
     return winner, "metric"
 
 
-def write_summary(scenario, vstats, winner, winner_type):
+def write_summary(scenario: str, vstats: list[dict[str, float | int | str | None]], winner: str, winner_type: str) -> None:
     table = stats_table(vstats)
     notes = SCENARIO_NOTES.get(scenario, "")
     notes_block = f"\n{notes}\n" if notes else ""
@@ -155,11 +138,11 @@ cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
 bash benchmarks/common/run_scenario.sh benchmarks/{scenario} 10
 python3 benchmarks/common/recommend.py benchmarks/{scenario}/results/raw.csv
 ```
-""")
+""", encoding='utf-8')
     print(f"  summary.md updated: {path}")
 
 
-def update_deepdive_readme(scenario, vstats, winner, winner_type):
+def update_deepdive_readme(scenario: str, vstats: list[dict[str, float | int | str | None]], winner: str, winner_type: str) -> None:
     readme_path = DEEP / scenario / 'README.md'
     if not readme_path.exists():
         return
@@ -182,14 +165,14 @@ def update_deepdive_readme(scenario, vstats, winner, winner_type):
 {table}
 {notes_block}"""
 
-    content = readme_path.read_text()
+    content = readme_path.read_text(encoding='utf-8')
     MARKER = "## Benchmark results"
     if MARKER in content:
         content = content[:content.index(MARKER)] + results_block
     else:
         content = content.rstrip() + "\n\n" + results_block + "\n"
 
-    readme_path.write_text(content)
+    readme_path.write_text(content, encoding='utf-8')
     print(f"  deep-dive README updated: {readme_path}")
 
 

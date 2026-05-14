@@ -159,12 +159,10 @@ def build_dockerfile(cfg: WizardConfig) -> str:
     if cfg.use_native_image:
         return build_native_dockerfile(cfg)
 
-    if cfg.runtime_base == "eclipse-temurin-jre":
-        cfg.use_jlink = False
+    use_jlink = cfg.use_jlink and cfg.runtime_base != "eclipse-temurin-jre"
+    use_aot_cache = cfg.use_aot_cache and use_jlink
 
-    if cfg.use_aot_cache and not cfg.use_jlink:
-        # Keep wizard safe and predictable.
-        cfg.use_aot_cache = False
+    # Keep wizard safe and predictable without mutating input config.
 
     s = runtime_settings(cfg.runtime_base, cfg.pin_digests)
     build_jdk = s["build_jdk"]
@@ -202,7 +200,7 @@ def build_dockerfile(cfg: WizardConfig) -> str:
     lines.append("RUN java -Djarmode=layertools -jar app.jar extract")
     lines.append("")
 
-    if cfg.use_jlink:
+    if use_jlink:
         lines.append(f"FROM {jlink_jdk} AS jre-builder")
         lines.append("WORKDIR /app_extracted")
         lines.append("COPY --from=build /app/build/libs/*-SNAPSHOT.jar app.jar")
@@ -213,9 +211,9 @@ def build_dockerfile(cfg: WizardConfig) -> str:
         lines.append("    jlink --add-modules \"$MODULES\" --strip-debug --no-man-pages --no-header-files --compress=2 --output /opt/custom-java")
         lines.append("")
 
-    if cfg.use_aot_cache:
+    if use_aot_cache:
         lines.append(f"FROM {runtime} AS aot-trainer")
-        if cfg.use_jlink:
+        if use_jlink:
             lines.append("COPY --from=jre-builder /opt/custom-java /opt/java")
             lines.append("ENV JAVA_HOME=/opt/java")
             lines.append("ENV PATH=\"${JAVA_HOME}/bin:${PATH}\"")
@@ -235,7 +233,7 @@ def build_dockerfile(cfg: WizardConfig) -> str:
         lines.append("RUN groupadd --system --gid 1001 javauser && \\")
         lines.append(f"    useradd --system --uid 1001 --gid 1001 --no-create-home --shell {shell} javauser")
 
-    if cfg.use_jlink:
+    if use_jlink:
         lines.append("ENV JAVA_HOME=/opt/java")
         lines.append("ENV PATH=\"${JAVA_HOME}/bin:${PATH}\"")
 
@@ -246,7 +244,7 @@ def build_dockerfile(cfg: WizardConfig) -> str:
 
     lines.append("WORKDIR /app")
 
-    if cfg.use_jlink:
+    if use_jlink:
         lines.append("COPY --from=jre-builder /opt/custom-java /opt/java")
 
     owner = "--chown=1001:1001 " if cfg.non_root else ""
@@ -255,7 +253,7 @@ def build_dockerfile(cfg: WizardConfig) -> str:
     lines.append(f"COPY --from=app-extract {owner}/app_extracted/spring-boot-loader/ ./")
     lines.append(f"COPY --from=app-extract {owner}/app_extracted/application/ ./")
 
-    if cfg.use_aot_cache:
+    if use_aot_cache:
         lines.append(f"COPY --from=aot-trainer {owner}/app/app.aot ./app.aot")
 
     lines.append("EXPOSE 8080")
@@ -273,7 +271,7 @@ def build_dockerfile(cfg: WizardConfig) -> str:
         lines.append("USER 1001")
 
     entry = ["java"]
-    if cfg.use_aot_cache:
+    if use_aot_cache:
         entry.append("-XX:AOTCache=app.aot")
     if cfg.tuned_jvm_flags:
         entry.extend([
@@ -407,7 +405,7 @@ def from_args() -> WizardConfig:
 def main() -> None:
     cfg = from_args()
     text = build_dockerfile(cfg)
-    cfg.output.write_text(text)
+    cfg.output.write_text(text, encoding='utf-8')
     print(f"Generated: {cfg.output}")
     print("Tip: compare with current Dockerfile before replacing it.")
 

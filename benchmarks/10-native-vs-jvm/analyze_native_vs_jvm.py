@@ -6,7 +6,7 @@ from collections import defaultdict
 from pathlib import Path
 
 
-ROOT = Path('/Users/afshin/IdeaProjects/sandbox/java-spring-docker')
+ROOT = Path(__file__).resolve().parents[2]
 SUMMARY_MD = ROOT / 'benchmarks' / '10-native-vs-jvm' / 'results' / 'summary.md'
 DEEP_DIVE_MD = ROOT / 'docs' / 'deep-dives' / '10-native-vs-jvm' / 'README.md'
 
@@ -17,25 +17,36 @@ def usage() -> None:
 
 def load_rows(path: str) -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
-    with open(path, newline='') as f:
+    with open(path, newline='', encoding='utf-8') as f:
         for r in csv.DictReader(f):
             if r.get('status') == 'ok':
                 rows.append(r)
     return rows
 
 
+def _parse_float(value: str | None) -> float | None:
+    if value in ('', '-1', None):
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
 def avg(items: list[dict[str, str]], field: str) -> float:
-    vals = [float(x[field]) for x in items if x.get(field) not in ('', '-1', None)]
+    vals = [value for x in items if (value := _parse_float(x.get(field))) is not None]
     return statistics.mean(vals) if vals else -1.0
 
 
 def avg_image_mb(items: list[dict[str, str]]) -> float:
     values: list[float] = []
     for row in items:
-        if row.get('image_mb') not in ('', '-1', None):
-            values.append(float(row['image_mb']))
-        elif row.get('image_bytes') not in ('', '-1', None):
-            values.append(float(row['image_bytes']) / (1024 * 1024))
+        image_mb = _parse_float(row.get('image_mb'))
+        image_bytes = _parse_float(row.get('image_bytes'))
+        if image_mb is not None:
+            values.append(image_mb)
+        elif image_bytes is not None:
+            values.append(image_bytes / (1024 * 1024))
     return statistics.mean(values) if values else -1.0
 
 
@@ -110,7 +121,8 @@ cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
 bash benchmarks/10-native-vs-jvm/run_native_vs_jvm.sh --duration 60m --vus 50 --cpu-work 12000
 python3 benchmarks/10-native-vs-jvm/analyze_native_vs_jvm.py benchmarks/10-native-vs-jvm/results/raw.csv
 ```
-"""
+""",
+        encoding='utf-8',
     )
     print(f'Updated markdown: {SUMMARY_MD}')
 
@@ -128,13 +140,13 @@ def write_deep_dive_results(table: str, decision: str) -> None:
         '- Validate with your own 60m runs and representative endpoint mix before standardizing.\n'
     )
 
-    content = DEEP_DIVE_MD.read_text()
+    content = DEEP_DIVE_MD.read_text(encoding='utf-8')
     marker = '## Benchmark results'
     if marker in content:
         content = content[:content.index(marker)] + results_block
     else:
         content = content.rstrip() + '\n\n' + results_block
-    DEEP_DIVE_MD.write_text(content)
+    DEEP_DIVE_MD.write_text(content, encoding='utf-8')
     print(f'Updated markdown: {DEEP_DIVE_MD}')
 
 

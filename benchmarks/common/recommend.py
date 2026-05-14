@@ -15,32 +15,9 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Decision weights per scenario
-# Each tuple: (build_weight, image_size_weight, startup_weight)
-# Higher weight = more important for that scenario's trade-off.
-# ──────────────────────────────────────────────────────────────────────────────
-SCENARIO_WEIGHTS: dict[str, tuple[float, float, float]] = {
-    "01-base-image-pinning":             (0.1, 0.1, 0.1),   # reproducibility – no metric wins here
-    "02-multi-stage-build-structure":    (0.3, 0.4, 0.3),   # image size matters most
-    "03-buildkit-gradle-cache":          (0.9, 0.0, 0.1),   # build time is the whole point
-    "04-custom-jre-jlink":               (0.1, 0.5, 0.4),   # size + startup
-    "05-jep483-aot-cache":              (0.2, 0.1, 0.7),   # complex-app startup is primary, with build cost considered
-    "06-runtime-hardening-non-root-tmp": (0.0, 0.0, 0.0),   # security – no metric wins here
-    "07-healthcheck-readiness":          (0.0, 0.0, 0.0),   # reliability – no metric wins here
-    "08-jvm-container-flags":            (0.0, 0.1, 0.9),   # startup / latency
-    "09-base-image-choice":              (0.2, 0.5, 0.3),   # image size + startup; build less relevant
-    "10-native-vs-jvm":                  (0.2, 0.3, 0.5),   # startup and runtime behavior balance
-}
-
-# Scenarios where the winner is always the "best-practice" variant regardless
-# of raw metrics (security/reliability decisions).
-ALWAYS_BEST_PRACTICE: dict[str, str] = {
-    "01-base-image-pinning":             "digest-pinned",
-    "06-runtime-hardening-non-root-tmp": "hardened-non-root",
-    "07-healthcheck-readiness":          "with-readiness-healthcheck",
-}
+from csv_metrics import parse_non_negative_int
+from metrics_table import VARIANT_TABLE_HEADER, variant_table_row
+from recommendation_policy import ALWAYS_BEST_PRACTICE, SCENARIO_WEIGHTS
 
 
 @dataclass
@@ -80,22 +57,36 @@ class VariantStats:
 
 def load_csv(path: str) -> dict[tuple[str, str], VariantStats]:
     groups: dict[tuple[str, str], VariantStats] = defaultdict(lambda: VariantStats("", ""))
-    with open(path, newline="") as f:
+    with Path(path).open(newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
             key = (row["scenario"], row["variant"])
             s = groups[key]
             s.scenario = row["scenario"]
             s.variant = row["variant"]
             s.runs += 1
-            if int(row["build_ms"]) >= 0:
-                s.build_times.append(int(row["build_ms"]))
-            if int(row["startup_ms"]) >= 0:
-                s.startup_times.append(int(row["startup_ms"]))
-            if int(row["image_bytes"]) >= 0:
-                s.image_sizes.append(int(row["image_bytes"]))
+            build_ms = parse_non_negative_int(row.get("build_ms"))
+            startup_ms = parse_non_negative_int(row.get("startup_ms"))
+            image_bytes = parse_non_negative_int(row.get("image_bytes"))
+            if build_ms is not None and build_ms >= 0:
+                s.build_times.append(build_ms)
+            if startup_ms is not None and startup_ms >= 0:
+                s.startup_times.append(startup_ms)
+            if image_bytes is not None and image_bytes >= 0:
+                s.image_sizes.append(image_bytes)
             if row["status"] == "ok":
                 s.ok += 1
     return groups
+
+
+
+def _merge_stats(dest: VariantStats, src: VariantStats) -> None:
+    dest.scenario = src.scenario
+    dest.variant = src.variant
+    dest.runs += src.runs
+    dest.build_times.extend(src.build_times)
+    dest.startup_times.extend(src.startup_times)
+    dest.image_sizes.extend(src.image_sizes)
+    dest.ok += src.ok
 
 
 def score(stats: VariantStats, all_stats: list[VariantStats]) -> float:
@@ -196,15 +187,20 @@ def recommend(groups: dict[tuple[str, str], VariantStats]) -> None:
 
 
 def _print_table(variants: list[VariantStats]) -> None:
-    print("| Variant | Runs | Build avg (ms) | Startup avg (ms) | Startup p95 (ms) | Image MB avg | Success |")
-    print("|---|---:|---:|---:|---:|---:|---:|")
+    print(VARIANT_TABLE_HEADER[0])
+    print(VARIANT_TABLE_HEADER[1])
     for v in sorted(variants, key=lambda x: x.variant):
-        ba = f"{v.build_avg:.0f}" if v.build_times else "-"
-        sa = f"{v.startup_avg:.0f}" if v.startup_times else "-"
-        sp = f"{v.startup_p95:.0f}" if v.startup_times else "-"
-        im = f"{v.image_mb_avg:.2f}" if v.image_sizes else "-"
-        ok = f"{v.success_rate:.1f}%"
-        print(f"| {v.variant} | {v.runs} | {ba} | {sa} | {sp} | {im} | {ok} |")
+        print(
+            variant_table_row(
+                variant=v.variant,
+                runs=v.runs,
+                build_avg=v.build_avg if v.build_times else None,
+                startup_avg=v.startup_avg if v.startup_times else None,
+                startup_p95=v.startup_p95 if v.startup_times else None,
+                image_mb=v.image_mb_avg if v.image_sizes else None,
+                success_pct=v.success_rate,
+            )
+        )
 
 
 def main() -> None:
@@ -212,15 +208,17 @@ def main() -> None:
         print("Usage: recommend.py <raw.csv> [raw.csv ...]")
         sys.exit(1)
 
-    all_groups: dict[tuple[str, str], VariantStats] = {}
+    all_groups: dict[tuple[str, str], VariantStats] = defaultdict(lambda: VariantStats("", ""))
     for path in sys.argv[1:]:
-        all_groups.update(load_csv(path))
+        loaded = load_csv(path)
+        for key, stats in loaded.items():
+            _merge_stats(all_groups[key], stats)
 
     if not all_groups:
         print("No data found in provided CSV files.")
         sys.exit(0)
 
-    recommend(all_groups)
+    recommend(dict(all_groups))
 
 
 if __name__ == "__main__":
