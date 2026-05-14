@@ -14,6 +14,10 @@ python3 -m venv .venv
 . .venv/bin/activate
 python3 -m pip install -e .
 
+# or install globally with pipx
+pipx install springdocker-cli
+pipx upgrade springdocker-cli
+
 springdocker doctor --project-root samples/java-spring-docker
 springdocker init --project-root samples/java-spring-docker --build-tool maven
 springdocker benchmark run --project-root samples/java-spring-docker
@@ -24,4 +28,3 @@ springdocker benchmark run --project-root samples/java-spring-docker
 - `samples/java-spring-docker/HELP.md`
 - `samples/java-spring-docker/tools/README.md`
 - `samples/java-spring-docker/benchmarks/README.md`
-

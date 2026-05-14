@@ -1,29 +1,44 @@
-# springdocker CLI (v0 scaffold)
+# springdocker CLI
 
-This is an initial CLI scaffold to run existing project tooling with a stable interface.
+CLI for Spring Boot Dockerfile and benchmark workflows across Maven and Gradle projects.
 
-## Install (local editable)
+## Install
+
+### Local editable
 
 ```bash
-cd /path/to/your-java25-project
 python3 -m pip install -e .
+```
+
+### pipx
+
+```bash
+pipx install springdocker-cli
+springdocker --help
+```
+
+Upgrade:
+
+```bash
+pipx upgrade springdocker-cli
 ```
 
 ## Quick usage
 
 ```bash
-springdocker init --project-root samples/java-spring-docker --build-tool maven
+springdocker init --project-root samples/java-spring-docker --build-tool maven --profile quick
 springdocker doctor --project-root samples/java-spring-docker
-springdocker dockerfile generate --project-root samples/java-spring-docker --build-tool maven --output Dockerfile.generated
-springdocker benchmark generate --project-root samples/java-spring-docker --build-tool gradle --java-version 25
-springdocker benchmark run --project-root samples/java-spring-docker --build-tool maven --profile quick
-springdocker benchmark analyze --project-root samples/java-spring-docker benchmarks/05-jep483-aot-cache/results/raw.csv
-springdocker benchmark analyze --project-root samples/java-spring-docker benchmarks/05-jep483-aot-cache/results/raw.csv --format json --scenario 05-jep483-aot-cache --variant with-aot-cache
+springdocker dockerfile generate --project-root samples/java-spring-docker --output Dockerfile.generated
+springdocker benchmark generate --project-root samples/java-spring-docker --java-version 25
+springdocker benchmark run --project-root samples/java-spring-docker --profile quick --runner-arg --skip-native
+springdocker benchmark analyze --project-root samples/java-spring-docker benchmarks/05-jep483-aot-cache/results/raw.csv --format table
+springdocker benchmark analyze --project-root samples/java-spring-docker benchmarks/05-jep483-aot-cache/results/raw.csv --format json --output benchmarks/05-jep483-aot-cache/results/summary.json
+springdocker benchmark analyze --project-root samples/java-spring-docker benchmarks/05-jep483-aot-cache/results/raw.csv --fail-on-success-rate-below 95
 ```
 
 ## Config file (`.springdocker.toml`)
 
-`springdocker benchmark run` supports config merging with precedence:
+All command resolvers use precedence:
 
 1. CLI flags
 2. `.springdocker.toml`
@@ -35,30 +50,47 @@ Example:
 [project]
 build_tool = "maven"
 
-[benchmark]
+[doctor]
+build_tool = "maven"
+
+[dockerfile]
+output = "Dockerfile.generated"
+java_version = 25
+legacy_scripts = false
+wizard_args = []
+
+[benchmark.generate]
+java_version = 25
+legacy_scripts = false
+
+[benchmark.run]
 profile = "quick"
 runner_args = ["--skip-native"]
+legacy_scripts = false
 ```
 
-Run with config:
-
-```bash
-springdocker benchmark run --project-root samples/java-spring-docker
-springdocker benchmark run --project-root samples/java-spring-docker --config .springdocker.toml
-```
-
-Initialize config:
+Create template config:
 
 ```bash
 springdocker init --project-root samples/java-spring-docker --build-tool gradle
-springdocker init --project-root samples/java-spring-docker --build-tool maven --force
+springdocker init --project-root samples/java-spring-docker --build-tool gradle --profile full --print
 ```
 
-## Notes
+## Legacy compatibility mode
 
-- `springdocker` wraps existing scripts under `<project-root>/tools/` and `<project-root>/benchmarks/`.
-- If both `pom.xml` and `gradlew` exist, pass `--build-tool` explicitly.
-- Extra arguments can be forwarded:
-  - Dockerfile wizard: `--wizard-arg "--profile" --wizard-arg "balanced"`
-  - Benchmark runner: `--runner-arg "--skip-native"`
+Main command paths are internal and do not require project script files.
+
+To force script wrappers for compatibility:
+
+```bash
+springdocker dockerfile generate --use-legacy-scripts ...
+springdocker benchmark generate --use-legacy-scripts ...
+springdocker benchmark run --use-legacy-scripts ...
+```
+
+or set:
+
+```bash
+export SPRINGDOCKER_LEGACY_SCRIPTS=1
+```
 

@@ -1,5 +1,9 @@
 """springdocker CLI package."""
 
-__all__ = ["__version__"]
-__version__ = "0.1.0"
+from importlib.metadata import PackageNotFoundError, version
 
+__all__ = ["__version__"]
+try:
+    __version__ = version("springdocker-cli")
+except PackageNotFoundError:  # pragma: no cover - local source tree fallback
+    __version__ = "0.1.0"
