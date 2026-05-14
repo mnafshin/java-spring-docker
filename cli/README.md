@@ -13,14 +13,14 @@ python3 -m pip install -e .
 ### pipx
 
 ```bash
-pipx install springdocker-cli
+pipx install springdocker
 springdocker --help
 ```
 
 Upgrade:
 
 ```bash
-pipx upgrade springdocker-cli
+pipx upgrade springdocker
 ```
 
 ## Quick usage
@@ -93,4 +93,3 @@ or set:
 ```bash
 export SPRINGDOCKER_LEGACY_SCRIPTS=1
 ```
-

@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "springdocker-cli"
+name = "springdocker"
 version = "0.1.0"
 description = "CLI for Spring Boot Dockerfile and benchmark workflows (Maven/Gradle)."
 readme = "cli/README.md"
