@@ -44,3 +44,9 @@ date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes,host,dock
 2026-05-13,05-jep483-aot-cache,without-aot-cache,13,555,90595507,1430,ok,,Mac,29.4.2,full
 2026-05-13,05-jep483-aot-cache,without-aot-cache,14,577,90595507,1728,ok,,Mac,29.4.2,full
 2026-05-13,05-jep483-aot-cache,without-aot-cache,15,562,90595507,1449,ok,,Mac,29.4.2,full
+2026-05-14,05-jep483-aot-cache,minimal-app,1,599,90595461,1973,ok,,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,05-jep483-aot-cache,minimal-app,0,599,90595461,1413,ok,,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,05-jep483-aot-cache,with-aot-cache,1,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,05-jep483-aot-cache,with-aot-cache,0,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,05-jep483-aot-cache,without-aot-cache,1,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,05-jep483-aot-cache,without-aot-cache,0,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick

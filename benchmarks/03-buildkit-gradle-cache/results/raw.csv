@@ -25,3 +25,7 @@ date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes,host,dock
 2026-05-13,03-buildkit-gradle-cache,without-buildkit-cache,8,601,104241670,1416,ok,,Mac,29.4.2,full
 2026-05-13,03-buildkit-gradle-cache,without-buildkit-cache,9,591,104241670,1428,ok,,Mac,29.4.2,full
 2026-05-13,03-buildkit-gradle-cache,without-buildkit-cache,10,607,104241670,1425,ok,,Mac,29.4.2,full
+2026-05-14,03-buildkit-gradle-cache,with-buildkit-maven-cache,1,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,03-buildkit-gradle-cache,with-buildkit-maven-cache,0,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,03-buildkit-gradle-cache,without-buildkit-maven-cache,1,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,03-buildkit-gradle-cache,without-buildkit-maven-cache,0,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick

@@ -19,6 +19,23 @@ def load_manifest(path: Path) -> dict:
     return json.loads(path.read_text(encoding='utf-8'))
 
 
+def select_build_tool(explicit: str | None) -> str:
+    if explicit:
+        return explicit
+    has_gradle = (ROOT / 'gradlew').exists()
+    has_maven = (ROOT / 'pom.xml').exists()
+    if has_gradle and has_maven:
+        raise SystemExit(
+            "Both gradlew and pom.xml were found. Pass --build-tool gradle|maven explicitly "
+            "to avoid regenerating the wrong benchmark variant set."
+        )
+    if has_maven:
+        return 'maven'
+    if has_gradle:
+        return 'gradle'
+    raise SystemExit('Could not detect build tool. Add gradlew or pom.xml, or pass --build-tool.')
+
+
 def select_runs(item: dict, profile: str, runs_override: int | None, default_runs: dict) -> int:
     if runs_override is not None:
         return runs_override
@@ -36,7 +53,22 @@ def main() -> int:
     parser.add_argument('--native-vus', type=int, default=None, help='Override native benchmark virtual users.')
     parser.add_argument('--native-cpu-work', type=int, default=None, help='Override native benchmark CPU work value.')
     parser.add_argument('--manifest', default=str(DEFAULT_MANIFEST), help='Path to benchmark scenarios manifest JSON.')
+    parser.add_argument('--build-tool', choices=['gradle', 'maven'], default=None,
+                        help='Regenerate benchmark variants/docs for selected build tool before run.')
+    parser.add_argument('--java-version', type=int, default=25,
+                        help='Java major version used while regenerating benchmark variants/docs (default: 25).')
+    parser.add_argument('--regenerate-scenarios', action=argparse.BooleanOptionalAction, default=True,
+                        help='Regenerate benchmark variants/docs before executing scenarios (default: true).')
     args = parser.parse_args()
+
+    if args.regenerate_scenarios:
+        build_tool = select_build_tool(args.build_tool)
+        regen_cmd = ['python3', str(ROOT / 'benchmarks' / 'setup_benchmark_folders.py')]
+        regen_cmd.extend(['--build-tool', build_tool])
+        if args.java_version:
+            regen_cmd.extend(['--java-version', str(args.java_version)])
+        print('\n=== Regenerating benchmark variants/docs ===')
+        run(regen_cmd)
 
     manifest_path = Path(args.manifest)
     data = load_manifest(manifest_path)

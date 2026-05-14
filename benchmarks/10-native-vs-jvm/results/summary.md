@@ -8,8 +8,8 @@
 
 | Variant | Runs | Build avg (ms) | Startup avg (ms) | Startup p95 (ms) | Image MB | Success |
 |---|---:|---:|---:|---:|---:|---:|
-| jvm | 2 | 6255 | 1972 | 1976 | 134.77 | 100.0% |
-| native | 1 | 154550 | 302 | 302 | 59.74 | 100.0% |
+| jvm | 1 | 8956 | 2025 | 2025 | 130.56 | 100.0% |
+| native | 1 | 634891 | 308 | 308 | 55.71 | 100.0% |
 
 > **Context:** Native typically wins on cold start and memory footprint, while JVM can
 > win on long-run throughput due to JIT optimization. Use your 60-minute run results
@@ -18,7 +18,7 @@
 ## Reproduce or extend
 
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+cd /path/to/your-java25-project
 bash benchmarks/common/run_scenario.sh benchmarks/10-native-vs-jvm 10
 python3 benchmarks/common/recommend.py benchmarks/10-native-vs-jvm/results/raw.csv
 ```

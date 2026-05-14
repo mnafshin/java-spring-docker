@@ -7,11 +7,9 @@ WORKDIR /app
 COPY mvnw pom.xml ./
 COPY .mvn ./.mvn
 RUN chmod +x mvnw
-RUN --mount=type=cache,sharing=locked,target=/root/.m2 \
-    ./mvnw -B -q dependency:go-offline
+RUN ./mvnw -B -q dependency:go-offline
 COPY src ./src
-RUN --mount=type=cache,sharing=locked,target=/root/.m2 \
-    ./mvnw -B -q package -DskipTests
+RUN ./mvnw -B -q package -DskipTests
 
 FROM eclipse-temurin:25-jdk@sha256:572fe7b5b3ca8beb3b3aca96a7a88f1f7bc98a3bdffd03784a4568962c1a963a AS app-extract
 WORKDIR /app_extracted
@@ -66,4 +64,4 @@ EXPOSE 8081
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
   CMD curl -fsS http://localhost:8081/actuator/health/readiness || exit 1
 USER 1001
-ENTRYPOINT ["java", "-XX:AOTCache=app.aot", "org.springframework.boot.loader.launch.JarLauncher"]
+ENTRYPOINT ["java", "-XX:AOTCache=app.aot", "-XX:+UseZGC", "-XX:MaxRAMPercentage=75", "-XX:InitialRAMPercentage=50", "-XX:+ExitOnOutOfMemoryError", "-Djava.io.tmpdir=/tmp", "org.springframework.boot.loader.launch.JarLauncher"]

@@ -25,3 +25,7 @@ date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes,host,dock
 2026-05-13,04-custom-jre-jlink,without-jlink-runtime,8,919,150368096,1425,ok,,Mac,29.4.2,full
 2026-05-13,04-custom-jre-jlink,without-jlink-runtime,9,817,150368096,1431,ok,,Mac,29.4.2,full
 2026-05-13,04-custom-jre-jlink,without-jlink-runtime,10,841,150368096,1421,ok,,Mac,29.4.2,full
+2026-05-14,04-custom-jre-jlink,with-jlink-runtime,1,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,04-custom-jre-jlink,with-jlink-runtime,0,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,04-custom-jre-jlink,without-jlink-runtime,1,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,04-custom-jre-jlink,without-jlink-runtime,0,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick

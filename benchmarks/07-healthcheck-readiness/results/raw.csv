@@ -25,3 +25,7 @@ date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes,host,dock
 2026-05-13,07-healthcheck-readiness,without-healthcheck,8,614,104241670,1430,ok,,Mac,29.4.2,full
 2026-05-13,07-healthcheck-readiness,without-healthcheck,9,603,104241670,1430,ok,,Mac,29.4.2,full
 2026-05-13,07-healthcheck-readiness,without-healthcheck,10,624,104241670,1430,ok,,Mac,29.4.2,full
+2026-05-14,07-healthcheck-readiness,with-readiness-healthcheck,1,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,07-healthcheck-readiness,with-readiness-healthcheck,0,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,07-healthcheck-readiness,without-healthcheck,1,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,07-healthcheck-readiness,without-healthcheck,0,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick

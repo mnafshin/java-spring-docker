@@ -16,14 +16,14 @@ This wizard helps you generate a fit-for-purpose Dockerfile without manually edi
 ## Interactive usage
 
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+cd /path/to/your-java25-project
 python3 tools/dockerfile_wizard.py --interactive --output Dockerfile.generated
 ```
 
 ## Non-interactive usage (example)
 
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+cd /path/to/your-java25-project
 python3 tools/dockerfile_wizard.py \
   --runtime-base debian-bookworm-slim \
   --buildkit-cache \
@@ -34,10 +34,34 @@ python3 tools/dockerfile_wizard.py \
   --output Dockerfile.generated
 ```
 
+## Portability flags (for non-default project layouts)
+
+- `--source-dir`: source tree copied in build stage (default `src`)
+- `--jar-glob`: built JAR path glob in builder image (defaults: Gradle `build/libs/*-SNAPSHOT.jar`, Maven `target/*.jar`)
+- `--native-bin-path`: native executable path in builder image (overrides build-tool default)
+- `--app-port`: app container port to expose (default `8080`)
+- `--management-port`: readiness/management port to expose and probe (default `8081`)
+- `--readiness-path`: readiness endpoint path used by `HEALTHCHECK` (default `/actuator/health/readiness`)
+
+Example:
+
+```bash
+cd /path/to/your-java25-project
+python3 tools/dockerfile_wizard.py \
+  --profile balanced \
+  --build-tool maven \
+  --source-dir service/src \
+  --jar-glob 'target/*.jar' \
+  --app-port 9000 \
+  --management-port 9001 \
+  --readiness-path /readyz \
+  --output Dockerfile.generated
+```
+
 ## One-flag profiles
 
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+cd /path/to/your-java25-project
 python3 tools/dockerfile_wizard.py --profile balanced --output Dockerfile.generated
 ```
 
@@ -53,7 +77,7 @@ Available profiles:
 ### Override any profile option explicitly
 
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+cd /path/to/your-java25-project
 python3 tools/dockerfile_wizard.py \
   --profile smallest \
   --runtime-base debian-bookworm-slim \
@@ -64,14 +88,14 @@ python3 tools/dockerfile_wizard.py \
 ### Generate native-image Dockerfile
 
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+cd /path/to/your-java25-project
 python3 tools/dockerfile_wizard.py --profile native --output Dockerfile.generated
 ```
 
 or explicitly:
 
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+cd /path/to/your-java25-project
 python3 tools/dockerfile_wizard.py --profile balanced --native-image --output Dockerfile.generated
 ```
 
@@ -85,7 +109,7 @@ python3 tools/dockerfile_wizard.py --profile balanced --native-image --output Do
 ## Validate generated output
 
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+cd /path/to/your-java25-project
 docker build -f Dockerfile.generated -t app:generated .
 ```
 

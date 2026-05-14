@@ -25,3 +25,7 @@ date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes,host,dock
 2026-05-13,08-jvm-container-flags,tuned-flags,8,610,104241670,1416,ok,,Mac,29.4.2,full
 2026-05-13,08-jvm-container-flags,tuned-flags,9,590,104241670,1442,ok,,Mac,29.4.2,full
 2026-05-13,08-jvm-container-flags,tuned-flags,10,574,104241670,1429,ok,,Mac,29.4.2,full
+2026-05-14,08-jvm-container-flags,defaults-like,1,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,08-jvm-container-flags,defaults-like,0,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,08-jvm-container-flags,tuned-flags,1,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,08-jvm-container-flags,tuned-flags,0,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick

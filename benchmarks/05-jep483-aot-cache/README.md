@@ -1,24 +1,23 @@
-# 05-jep483-aot-cache (canonical complex-app scenario)
+# 05-jep483-aot-cache
 
-Compare startup with and without JEP 483 runtime cache on the production-like Spring application used in this repository.
+Compare startup with and without JEP 483 AOT class-loading cache (Java 25+). Training run fires -Dspring.context.exit=onRefresh so every startup class is recorded.
 
 ## Variants
 
 - `with-aot-cache`
 - `without-aot-cache`
-- `minimal-app`
 
 ## Run benchmark
 
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
-bash benchmarks/common/run_scenario.sh benchmarks/05-jep483-aot-cache 15
+cd /path/to/your-java25-project
+bash benchmarks/common/run_scenario.sh benchmarks/05-jep483-aot-cache 10
 python3 benchmarks/common/analyze_results.py benchmarks/05-jep483-aot-cache/results/raw.csv
 ```
 
 ## Notes
 
-- This is the primary AOT benchmark for decision-making and presentations.
 - Keep environment stable across runs (CPU, memory, Docker version).
-- Use at least 15 samples per variant for stable comparison.
-
+- Run at least 10 samples per variant.
+- Change only one variable per scenario.
+- Build tool: **maven** | Java version: **25**

@@ -17,7 +17,7 @@ This demonstrates AOT cache benefits with:
 
 ### Option 1: Run Complete Benchmark (Recommended)
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+cd /path/to/your-java25-project
 
 # Run canonical complex AOT benchmark with 15 samples
 bash benchmarks/common/run_scenario.sh benchmarks/05-jep483-aot-cache 15

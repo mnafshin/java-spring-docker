@@ -117,7 +117,7 @@ def write_benchmark_summary(table: str, decision: str) -> None:
 ## Reproduce or extend
 
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+cd /path/to/your-java25-project
 bash benchmarks/10-native-vs-jvm/run_native_vs_jvm.sh --duration 60m --vus 50 --cpu-work 12000
 python3 benchmarks/10-native-vs-jvm/analyze_native_vs_jvm.py benchmarks/10-native-vs-jvm/results/raw.csv
 ```

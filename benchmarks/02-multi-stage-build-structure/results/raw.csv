@@ -25,3 +25,7 @@ date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes,host,dock
 2026-05-13,02-multi-stage-build-structure,specialized-multi-stage,8,607,104241670,1447,ok,,Mac,29.4.2,full
 2026-05-13,02-multi-stage-build-structure,specialized-multi-stage,9,1054,104241670,1440,ok,,Mac,29.4.2,full
 2026-05-13,02-multi-stage-build-structure,specialized-multi-stage,10,724,104241670,1429,ok,,Mac,29.4.2,full
+2026-05-14,02-multi-stage-build-structure,simple-two-stage,1,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,02-multi-stage-build-structure,simple-two-stage,0,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,02-multi-stage-build-structure,specialized-multi-stage,1,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,02-multi-stage-build-structure,specialized-multi-stage,0,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick

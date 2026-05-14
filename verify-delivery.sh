@@ -1,5 +1,33 @@
-#!/bin/bash
-# Benchmark verification helper for current canonical workflow
+#!/usr/bin/env bash
+# Benchmark verification helper for portable Java benchmark workflows.
+
+set -u
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="${PROJECT_ROOT:-$SCRIPT_DIR}"
+
+# Runtime knobs for portability across app layouts.
+SOURCE_ROOT="${SOURCE_ROOT:-$ROOT_DIR/src/main/java}"
+BENCH_ROOT="${BENCH_ROOT:-$ROOT_DIR/benchmarks}"
+AOT_SCENARIO_DIR="${AOT_SCENARIO_DIR:-$BENCH_ROOT/05-jep483-aot-cache}"
+
+detect_build_tool() {
+  if [[ -n "${BUILD_TOOL:-}" ]]; then
+    echo "$BUILD_TOOL"
+    return
+  fi
+  if [[ -x "$ROOT_DIR/gradlew" ]]; then
+    echo "gradle"
+    return
+  fi
+  if [[ -f "$ROOT_DIR/pom.xml" ]]; then
+    echo "maven"
+    return
+  fi
+  echo "unknown"
+}
+
+BUILD_TOOL_DETECTED="$(detect_build_tool)"
 
 echo "=========================================="
 echo "AOT CACHE BENCHMARK - VERIFICATION"
@@ -8,17 +36,21 @@ echo ""
 
 echo "📦 NEW JAVA SOURCE FILES"
 echo "————————————————————————————"
-find /Users/afshin/IdeaProjects/sandbox/java-spring-docker/src/main/java/io/github/mnafshin/java_spring_docker \
-  \( -path "*/service/*" -o -path "*/control/*" -o -path "*/config/*" \) \
-  -name "*.java" -not -path "*/test/*" -type f | sort | while read f; do
-  lines=$(wc -l < "$f")
-  echo "  ✓ $(basename "$f") ($lines lines)"
-done
+if [[ -d "$SOURCE_ROOT" ]]; then
+  find "$SOURCE_ROOT" \
+    \( -path "*/service/*" -o -path "*/control/*" -o -path "*/config/*" \) \
+    -name "*.java" -not -path "*/test/*" -type f | sort | while read -r f; do
+    lines=$(wc -l < "$f")
+    echo "  ✓ $(basename "$f") ($lines lines)"
+  done
+else
+  echo "  ⚠ Source root not found: $SOURCE_ROOT"
+fi
 
 echo ""
 echo "📋 CANONICAL AOT BENCHMARK DOCS"
 echo "————————————————————————————"
-ls -1 /Users/afshin/IdeaProjects/sandbox/java-spring-docker/benchmarks/05-jep483-aot-cache/*.md 2>/dev/null | while read f; do
+ls -1 "$AOT_SCENARIO_DIR"/*.md 2>/dev/null | while read -r f; do
   lines=$(wc -l < "$f")
   echo "  ✓ $(basename "$f") ($lines lines)"
 done
@@ -26,8 +58,8 @@ done
 echo ""
 echo "📚 BENCHMARK-LOCAL DEEP DIVE DOCS"
 echo "————————————————————————————"
-ls -1 /Users/afshin/IdeaProjects/sandbox/java-spring-docker/benchmarks/*/DEEP_DIVE.md \
-      /Users/afshin/IdeaProjects/sandbox/java-spring-docker/benchmarks/05-jep483-aot-cache/AOT-*.md 2>/dev/null | while read f; do
+ls -1 "$BENCH_ROOT"/*/DEEP_DIVE.md \
+      "$AOT_SCENARIO_DIR"/AOT-*.md 2>/dev/null | while read -r f; do
   lines=$(wc -l < "$f")
   echo "  ✓ $(basename "$f") ($lines lines)"
 done
@@ -35,8 +67,8 @@ done
 echo ""
 echo "🔧 SHARED BENCHMARK SCRIPTS"
 echo "————————————————————————————"
-ls -1 /Users/afshin/IdeaProjects/sandbox/java-spring-docker/benchmarks/common/*.sh \
-      /Users/afshin/IdeaProjects/sandbox/java-spring-docker/benchmarks/common/*.py 2>/dev/null | while read f; do
+ls -1 "$BENCH_ROOT"/common/*.sh \
+      "$BENCH_ROOT"/common/*.py 2>/dev/null | while read -r f; do
   lines=$(wc -l < "$f")
   echo "  ✓ $(basename "$f") ($lines lines)"
 done
@@ -44,7 +76,7 @@ done
 echo ""
 echo "🐳 AOT SCENARIO DOCKERFILES"
 echo "————————————————————————————"
-find /Users/afshin/IdeaProjects/sandbox/java-spring-docker/benchmarks/05-jep483-aot-cache/variants -name "Dockerfile" | sort | while read f; do
+find "$AOT_SCENARIO_DIR"/variants -name "Dockerfile" 2>/dev/null | sort | while read -r f; do
   lines=$(wc -l < "$f")
   dir=$(dirname "$f" | xargs basename)
   echo "  ✓ $dir/Dockerfile ($lines lines)"
@@ -53,7 +85,7 @@ done
 echo ""
 echo "📖 PROJECT SUMMARY DOCUMENTS"
 echo "————————————————————————————"
-ls -1 /Users/afshin/IdeaProjects/sandbox/java-spring-docker/{*SUMMARY.md,*MANIFEST.md} 2>/dev/null | while read f; do
+ls -1 "$ROOT_DIR"/{*SUMMARY.md,*MANIFEST.md} 2>/dev/null | while read -r f; do
   lines=$(wc -l < "$f")
   echo "  ✓ $(basename "$f") ($lines lines)"
 done
@@ -62,11 +94,31 @@ echo ""
 echo "=========================================="
 echo "✅ BUILD STATUS"
 echo "=========================================="
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
-if ./gradlew build -x test -q 2>&1 | grep -q "BUILD SUCCESSFUL"; then
-  echo "✅ Build: SUCCESSFUL"
+cd "$ROOT_DIR"
+if [[ "$BUILD_TOOL_DETECTED" == "gradle" ]]; then
+  if ./gradlew build -x test -q >/dev/null 2>&1; then
+    echo "✅ Build: SUCCESSFUL (Gradle)"
+  else
+    echo "❌ Build: FAILED (Gradle)"
+  fi
+elif [[ "$BUILD_TOOL_DETECTED" == "maven" ]]; then
+  if [[ -x "$ROOT_DIR/mvnw" ]]; then
+    if "$ROOT_DIR/mvnw" -q -DskipTests package >/dev/null 2>&1; then
+      echo "✅ Build: SUCCESSFUL (Maven Wrapper)"
+    else
+      echo "❌ Build: FAILED (Maven Wrapper)"
+    fi
+  elif command -v mvn >/dev/null 2>&1; then
+    if mvn -q -DskipTests package >/dev/null 2>&1; then
+      echo "✅ Build: SUCCESSFUL (Maven)"
+    else
+      echo "❌ Build: FAILED (Maven)"
+    fi
+  else
+    echo "⚠ Maven build selected but neither ./mvnw nor mvn is available."
+  fi
 else
-  echo "❌ Build: FAILED"
+  echo "⚠ Build tool not detected. Set BUILD_TOOL=gradle or BUILD_TOOL=maven to enable build check."
 fi
 
 echo ""

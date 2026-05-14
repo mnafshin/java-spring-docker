@@ -17,7 +17,7 @@ This benchmark compares Spring Boot JVM container vs GraalVM native-image contai
 ## Run benchmark (long-run, 60m)
 
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+cd /path/to/your-java25-project
 bash benchmarks/10-native-vs-jvm/run_native_vs_jvm.sh --duration 60m --vus 50 --cpu-work 12000
 python3 benchmarks/10-native-vs-jvm/analyze_native_vs_jvm.py benchmarks/10-native-vs-jvm/results/raw.csv
 ```

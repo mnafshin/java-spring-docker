@@ -64,3 +64,13 @@ date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes,host,dock
 2026-05-13,09-base-image-choice,ubuntu-noble,8,930,91621506,1750,ok,,Mac,29.4.2,full
 2026-05-13,09-base-image-choice,ubuntu-noble,9,800,91621506,1723,ok,,Mac,29.4.2,full
 2026-05-13,09-base-image-choice,ubuntu-noble,10,861,91621506,1717,ok,,Mac,29.4.2,full
+2026-05-14,09-base-image-choice,alpine,1,1282,69289675,1972,ok,,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,09-base-image-choice,alpine,0,825,69289675,1709,ok,,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,09-base-image-choice,debian-bookworm-slim,1,992,90861274,1698,ok,,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,09-base-image-choice,debian-bookworm-slim,0,783,90861274,1420,ok,,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,09-base-image-choice,eclipse-temurin-jre,1,1193,136720929,1967,ok,,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,09-base-image-choice,eclipse-temurin-jre,0,852,136720929,1459,ok,,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,09-base-image-choice,ubi9-minimal,1,1270,100966955,1955,ok,,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,09-base-image-choice,ubi9-minimal,0,786,100966955,1409,ok,,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,09-base-image-choice,ubuntu-noble,1,1277,91621506,1709,ok,,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,09-base-image-choice,ubuntu-noble,0,884,91621506,1404,ok,,Ghazals-MacBook-Air,29.4.2,quick

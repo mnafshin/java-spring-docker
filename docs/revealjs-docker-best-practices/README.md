@@ -5,7 +5,7 @@ This folder contains a Reveal.js presentation for the current Java/Spring Docker
 ## Open locally
 
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+cd /path/to/your-java25-project
 python3 -m http.server 8000
 ```
 

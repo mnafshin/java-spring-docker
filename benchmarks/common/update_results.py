@@ -134,7 +134,7 @@ def write_summary(scenario: str, vstats: list[dict[str, float | int | str | None
 ## Reproduce or extend
 
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+cd /path/to/your-java25-project
 bash benchmarks/common/run_scenario.sh benchmarks/{scenario} 10
 python3 benchmarks/common/recommend.py benchmarks/{scenario}/results/raw.csv
 ```

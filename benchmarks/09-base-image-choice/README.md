@@ -29,7 +29,7 @@ This is the correct approach, but adds a separate build lineage for that variant
 ## Run benchmark
 
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+cd /path/to/your-java25-project
 bash benchmarks/common/run_scenario.sh benchmarks/09-base-image-choice 10
 python3 benchmarks/common/analyze_results.py benchmarks/09-base-image-choice/results/raw.csv
 python3 benchmarks/common/recommend.py benchmarks/09-base-image-choice/results/raw.csv

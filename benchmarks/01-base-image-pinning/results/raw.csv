@@ -25,3 +25,7 @@ date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes,host,dock
 2026-05-13,01-base-image-pinning,tag-only,8,859,104474361,1429,ok,,Mac,29.4.2,full
 2026-05-13,01-base-image-pinning,tag-only,9,828,104474361,1428,ok,,Mac,29.4.2,full
 2026-05-13,01-base-image-pinning,tag-only,10,852,104474361,1427,ok,,Mac,29.4.2,full
+2026-05-14,01-base-image-pinning,digest-pinned,1,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,01-base-image-pinning,digest-pinned,0,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,01-base-image-pinning,tag-only,1,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,01-base-image-pinning,tag-only,0,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick

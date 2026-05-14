@@ -4,6 +4,8 @@ set -euo pipefail
 SCENARIO_DIR="${1:-}"
 RUNS="${2:-5}"
 BASE_PORT="${BASE_PORT:-19081}"
+CONTAINER_MGMT_PORT="${CONTAINER_MGMT_PORT:-8081}"
+READINESS_PATH="${READINESS_PATH:-/actuator/health/readiness}"
 
 if [[ -z "$SCENARIO_DIR" ]]; then
   echo "Usage: run_scenario.sh <scenario_dir> [runs]" >&2
@@ -12,6 +14,11 @@ fi
 
 if [[ ! -d "$SCENARIO_DIR/variants" ]]; then
   echo "Missing variants directory: $SCENARIO_DIR/variants" >&2
+  exit 1
+fi
+
+if [[ "$RUNS" -lt 1 ]]; then
+  echo "RUNS must be >= 1 (got: $RUNS)" >&2
   exit 1
 fi
 
@@ -50,7 +57,7 @@ PY
 )
 
   for ((i=1; i<=attempts; i++)); do
-    if curl -fsS "http://localhost:${port}/actuator/health/readiness" >/dev/null 2>&1; then
+    if curl -fsS "http://localhost:${port}${READINESS_PATH}" >/dev/null 2>&1; then
       end_ms=$(python3 - <<'PY'
 import time
 print(int(time.time() * 1000))
@@ -94,7 +101,7 @@ PY
       image_bytes=$(docker image inspect "$image_tag" --format '{{.Size}}')
 
       cname="bench-${scenario_name}-${variant}-${run}-$RANDOM"
-      docker run -d --rm --name "$cname" -p "${port}:8081" "$image_tag" >/dev/null
+      docker run -d --rm --name "$cname" -p "${port}:${CONTAINER_MGMT_PORT}" "$image_tag" >/dev/null
 
       status="ok"
       startup_ms="-1"
@@ -109,12 +116,14 @@ PY
       docker stop "$cname" >/dev/null || true
 
       printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
-        "$(date +%F)" "$scenario_name" "$variant" "$run" "$build_ms" "$image_bytes" "$startup_ms" "$status" "$notes" "$HOST_NAME" "$DOCKER_VERSION" "$RUN_PROFILE" >> "$RAW_CSV"
+        "$(date +%F)" "$scenario_name" "$variant" "$run" "$build_ms" "$image_bytes" "$startup_ms" "$status" "$notes" "$HOST_NAME" "$DOCKER_VERSION" "$RUN_PROFILE" \
+        >> "$RAW_CSV"
 
       echo "run ${run}: build=${build_ms}ms size=${image_bytes} startup=${startup_ms} status=${status}"
     else
       printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
-        "$(date +%F)" "$scenario_name" "$variant" "$run" "-1" "-1" "-1" "build_failed" "docker build failed" "$HOST_NAME" "$DOCKER_VERSION" "$RUN_PROFILE" >> "$RAW_CSV"
+        "$(date +%F)" "$scenario_name" "$variant" "$run" "-1" "-1" "-1" "build_failed" "docker build failed" "$HOST_NAME" "$DOCKER_VERSION" "$RUN_PROFILE" \
+        >> "$RAW_CSV"
 
       echo "run ${run}: build failed"
     fi

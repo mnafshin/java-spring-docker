@@ -25,3 +25,7 @@ date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes,host,dock
 2026-05-13,06-runtime-hardening-non-root-tmp,root-runtime,8,613,104240172,1428,ok,,Mac,29.4.2,full
 2026-05-13,06-runtime-hardening-non-root-tmp,root-runtime,9,565,104240172,1413,ok,,Mac,29.4.2,full
 2026-05-13,06-runtime-hardening-non-root-tmp,root-runtime,10,601,104240172,1409,ok,,Mac,29.4.2,full
+2026-05-14,06-runtime-hardening-non-root-tmp,hardened-non-root,1,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,06-runtime-hardening-non-root-tmp,hardened-non-root,0,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,06-runtime-hardening-non-root-tmp,root-runtime,1,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick
+2026-05-14,06-runtime-hardening-non-root-tmp,root-runtime,0,-1,-1,-1,build_failed,docker build failed,Ghazals-MacBook-Air,29.4.2,quick

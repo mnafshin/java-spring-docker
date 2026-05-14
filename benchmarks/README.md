@@ -35,17 +35,32 @@ This folder now contains per-topic benchmark scenarios, each with its own varian
 ## Run one scenario
 
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+cd /path/to/your-java25-project
 bash benchmarks/common/run_scenario.sh benchmarks/05-jep483-aot-cache 10
 python3 benchmarks/common/analyze_results.py benchmarks/05-jep483-aot-cache/results/raw.csv
+```
+
+Optional overrides for services that do not use default management settings:
+
+```bash
+cd /path/to/your-java25-project
+CONTAINER_MGMT_PORT=9001 READINESS_PATH=/readyz bash benchmarks/common/run_scenario.sh benchmarks/05-jep483-aot-cache 10
 ```
 
 ## Run all benchmarks and refresh markdown reports
 
 ```bash
-cd /Users/afshin/IdeaProjects/sandbox/java-spring-docker
+cd /path/to/your-java25-project
 bash benchmarks/common/run_all_benchmarks.sh --profile quick
 bash benchmarks/common/run_all_benchmarks.sh --profile full
+```
+
+For Maven-targeted runs, regenerate variants/docs for Maven first:
+
+```bash
+cd /path/to/your-java25-project
+bash benchmarks/common/run_all_benchmarks.sh --profile quick --build-tool maven
+bash benchmarks/common/run_all_benchmarks.sh --profile full --build-tool maven
 ```
 
 - Runs enabled scenarios from `benchmarks/common/scenarios.json`.
