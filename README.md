@@ -1,38 +1,27 @@
-# java-spring-docker
+# springdocker mono-repo
 
-Spring Boot 4 / Java 25 benchmark sandbox with Docker optimization scenarios.
+Repository layout:
 
-## Dual-tooling workflow
+- `src/springdocker/` - installable CLI package.
+- `cli/README.md` - CLI usage and configuration docs.
+- `samples/java-spring-docker/` - sample Spring Boot Java project (Maven + Gradle) with Docker and benchmark assets.
 
-This project supports both Gradle and Maven Wrapper.
-
-### 1) Maven path
-
-```bash
-cd /path/to/your-java25-project
-./mvnw -DskipTests package
-./mvnw test
-python3 tools/dockerfile_wizard.py --build-tool maven --profile balanced --output Dockerfile.generated
-bash benchmarks/common/run_all_benchmarks.sh --profile quick --build-tool maven
-```
-
-### 2) Gradle path
+## Quick start
 
 ```bash
-cd /path/to/your-java25-project
-./gradlew build -x test
-./gradlew test
-python3 tools/dockerfile_wizard.py --build-tool gradle --profile balanced --output Dockerfile.generated
-bash benchmarks/common/run_all_benchmarks.sh --profile quick --build-tool gradle
+cd /path/to/your-repo
+python3 -m venv .venv
+. .venv/bin/activate
+python3 -m pip install -e .
+
+springdocker doctor --project-root samples/java-spring-docker
+springdocker init --project-root samples/java-spring-docker --build-tool maven
+springdocker benchmark run --project-root samples/java-spring-docker
 ```
 
-### 3) Build-tool regeneration rule for benchmarks
+## Sample project docs
 
-Always pass `--build-tool` to benchmark orchestration so scenario variants are regenerated for the selected build system before execution.
-
-## More docs
-
-- `tools/README.md` for Dockerfile generation profiles and flags.
-- `benchmarks/README.md` for benchmark scenarios and run strategy.
-- `benchmarks/common/README.md` for runner options and CSV/report workflow.
+- `samples/java-spring-docker/HELP.md`
+- `samples/java-spring-docker/tools/README.md`
+- `samples/java-spring-docker/benchmarks/README.md`
 

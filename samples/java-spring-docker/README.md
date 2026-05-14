@@ -1,0 +1,26 @@
+# java-spring-docker sample project
+
+This sample Spring Boot 4 / Java 25 project is used to exercise `springdocker` CLI workflows.
+
+## Build with Maven
+
+```bash
+cd /path/to/your-repo/samples/java-spring-docker
+./mvnw -DskipTests package
+./mvnw test
+```
+
+## Build with Gradle
+
+```bash
+cd /path/to/your-repo/samples/java-spring-docker
+./gradlew build -x test
+./gradlew test
+```
+
+## Benchmark docs
+
+- `benchmarks/README.md`
+- `benchmarks/common/README.md`
+- `tools/README.md`
+
