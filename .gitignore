@@ -40,3 +40,8 @@ out/
 __pycache__/
 *.py[cod]
 
+### springdocker generated benchmark artifacts ###
+samples/java-spring-docker/benchmarks/*/variants/
+samples/java-spring-docker/benchmarks/*/results/
+samples/java-spring-docker/report.md
+samples/java-spring-docker/steps.adoc
