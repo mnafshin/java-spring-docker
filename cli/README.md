@@ -18,6 +18,7 @@ springdocker dockerfile generate --project-root samples/java-spring-docker --bui
 springdocker benchmark generate --project-root samples/java-spring-docker --build-tool gradle --java-version 25
 springdocker benchmark run --project-root samples/java-spring-docker --build-tool maven --profile quick
 springdocker benchmark analyze --project-root samples/java-spring-docker benchmarks/05-jep483-aot-cache/results/raw.csv
+springdocker benchmark analyze --project-root samples/java-spring-docker benchmarks/05-jep483-aot-cache/results/raw.csv --format json --scenario 05-jep483-aot-cache --variant with-aot-cache
 ```
 
 ## Config file (`.springdocker.toml`)

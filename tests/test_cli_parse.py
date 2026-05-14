@@ -23,6 +23,25 @@ class CliParseTests(unittest.TestCase):
         self.assertEqual(args.benchmark_command, "run")
         self.assertEqual(args.profile, "full")
 
+    def test_benchmark_analyze_parse(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args([
+            "benchmark",
+            "analyze",
+            "results/raw.csv",
+            "--format",
+            "json",
+            "--scenario",
+            "05-jep483-aot-cache",
+            "--variant",
+            "with-aot-cache",
+        ])
+        self.assertEqual(args.command, "benchmark")
+        self.assertEqual(args.benchmark_command, "analyze")
+        self.assertEqual(args.format, "json")
+        self.assertEqual(args.scenario, "05-jep483-aot-cache")
+        self.assertEqual(args.variant, "with-aot-cache")
+
 
 if __name__ == "__main__":
     unittest.main()

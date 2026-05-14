@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+from .analyze import format_json, format_table, summarize_csv
 from .config import write_default_config
 from .project_detect import inspect_project
 
@@ -134,10 +135,33 @@ def cmd_benchmark_run(
     return run_checked(cmd, project_root)
 
 
-def cmd_benchmark_analyze(project_root: Path, raw_csv: str) -> int:
-    script = project_root / "benchmarks" / "common" / "analyze_results.py"
-    if not script.exists():
-        print(f"error: missing script: {script}")
+def cmd_benchmark_analyze(
+    project_root: Path,
+    raw_csv: str,
+    output_format: str,
+    scenario: str | None,
+    variant: str | None,
+) -> int:
+    csv_path = Path(raw_csv)
+    if not csv_path.is_absolute():
+        csv_path = project_root / csv_path
+    if not csv_path.exists():
+        print(f"error: missing CSV file: {csv_path}")
         return 2
-    return run_checked(["python3", str(script), raw_csv], project_root)
+
+    try:
+        summaries = summarize_csv(csv_path, scenario=scenario, variant=variant)
+    except ValueError as exc:
+        print(f"error: {exc}")
+        return 2
+
+    if not summaries:
+        print("No rows matched the provided filters.")
+        return 0
+
+    if output_format == "json":
+        print(format_json(summaries))
+    else:
+        print(format_table(summaries))
+    return 0
 

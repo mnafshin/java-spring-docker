@@ -72,6 +72,9 @@ def build_parser() -> argparse.ArgumentParser:
     bench_analyze = bench_sub.add_parser("analyze", help="Analyze benchmark CSV")
     add_common_options(bench_analyze, with_build_tool=False)
     bench_analyze.add_argument("raw_csv", help="Path to results raw.csv")
+    bench_analyze.add_argument("--format", choices=["table", "json"], default="table")
+    bench_analyze.add_argument("--scenario", default=None, help="Filter by scenario id")
+    bench_analyze.add_argument("--variant", default=None, help="Filter by variant name")
 
     return parser
 
@@ -124,7 +127,13 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     if args.command == "benchmark" and args.benchmark_command == "analyze":
-        return cmd_benchmark_analyze(project_root=project_root, raw_csv=args.raw_csv)
+        return cmd_benchmark_analyze(
+            project_root=project_root,
+            raw_csv=args.raw_csv,
+            output_format=args.format,
+            scenario=args.scenario,
+            variant=args.variant,
+        )
 
     parser.error("unknown command")
     return 2
