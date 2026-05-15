@@ -126,6 +126,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Exit non-zero when any variant success rate is below this percentage (0-100)",
     )
+    bench_analyze.add_argument("--baseline", default=None, help="Path to a baseline JSON report")
+    bench_analyze.add_argument(
+        "--fail-on-regression-above",
+        type=float,
+        default=None,
+        help="Exit non-zero when any tracked metric regresses above this percentage",
+    )
 
     bench_compare = bench_sub.add_parser("compare", help="Compare benchmark variants against a baseline")
     add_common_options(bench_compare, with_build_tool=False)
@@ -231,6 +238,8 @@ def main(argv: list[str] | None = None) -> int:
             variant=args.variant,
             output_path=args.output,
             fail_on_success_rate_below=args.fail_on_success_rate_below,
+            baseline_path=args.baseline,
+            fail_on_regression_above=args.fail_on_regression_above,
         )
 
     if args.command == "benchmark" and args.benchmark_command == "compare":
