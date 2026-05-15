@@ -29,5 +29,8 @@ mypy src
 ## Code layout
 
 - `src/springdocker/` for CLI and core logic
-- `tests/` for Python tests
+- `tests/unit/` for pure unit coverage
+- `tests/integration/` for command and flow coverage
+- `tests/e2e/` for end-to-end CLI flows
+- `tests/benchmark/` for benchmark and snapshot coverage
 - `samples/java-spring-docker/` for sample project assets

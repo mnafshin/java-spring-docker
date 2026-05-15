@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
+from tests.test_support import add_src_to_path
+
+add_src_to_path()
 
 from springdocker.project_detect import detect_build_tool, has_spring_project_markers, inspect_project_details
 

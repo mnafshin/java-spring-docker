@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
+from tests.test_support import add_src_to_path
+
+add_src_to_path()
 
 from springdocker.commands import cmd_benchmark_analyze
 from springdocker.errors import EXIT_FAILURE, EXIT_OK, EXIT_USAGE

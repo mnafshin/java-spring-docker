@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -8,8 +7,9 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
+from tests.test_support import add_src_to_path
+
+add_src_to_path()
 
 from springdocker.commands import cmd_benchmark_generate, cmd_benchmark_run, cmd_dockerfile_generate, cmd_explain
 from springdocker.dockerfile import DockerfileOptions, build_dockerfile

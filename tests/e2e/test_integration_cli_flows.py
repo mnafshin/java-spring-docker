@@ -9,10 +9,13 @@ from pathlib import Path
 from shutil import copytree
 from unittest.mock import patch
 
+from tests.test_support import ROOT, add_src_to_path
+
+add_src_to_path()
+
 from springdocker.cli import main
 
-ROOT = Path(__file__).resolve().parent
-FIXTURES = ROOT / "fixtures"
+FIXTURES = ROOT / "tests" / "fixtures"
 
 
 class _FakeCompleted:
