@@ -50,7 +50,20 @@ class AnalyzeTests(unittest.TestCase):
             self.assertIn("| Scenario | Variant |", table)
             self.assertIn('"scenario": "s1"', data)
 
+    def test_optional_metrics_and_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            csv_path = Path(td) / "raw.csv"
+            csv_path.write_text(
+                "date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes,rss_bytes,cpu_pct,host,docker_version,run_profile\n"
+                "2026-01-01,s1,v1,1,100,1048576,200,ok,,2097152,33.5,host1,24.0,quick\n",
+                encoding="utf-8",
+            )
+            summaries = summarize_csv(csv_path)
+            self.assertAlmostEqual(summaries[0].rss_mb_avg or 0.0, 2.0)
+            self.assertAlmostEqual(summaries[0].cpu_pct_avg or 0.0, 33.5)
+            self.assertEqual(summaries[0].host, "host1")
+            self.assertIn('"rss_mb_avg": 2.0', format_json(summaries))
+
 
 if __name__ == "__main__":
     unittest.main()
-

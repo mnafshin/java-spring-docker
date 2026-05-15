@@ -19,6 +19,8 @@ Each benchmark run records one row per build-and-startup attempt with these fiel
 - `docker_version`
 - `run_profile`
 
+If available, the analyzer also reports RSS memory and CPU usage columns.
+
 The runner writes rows into `results/raw.csv` next to each scenario.
 
 ## Run profiles
@@ -55,6 +57,8 @@ There is no separate warmup phase in the current runner; each recorded row is a 
 - mean startup time
 - p95 startup time
 - average image size
+- average RSS memory
+- average CPU usage
 - success rate
 
 When a metric is missing, the analyzer leaves the field empty instead of failing the summary.
