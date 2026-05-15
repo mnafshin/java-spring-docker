@@ -13,17 +13,16 @@
     <div class="slides">
       <section>
         <h1>Dockerfile Decisions with Evidence</h1>
-        <h3>45-minute engineering briefing for Spring Boot container delivery</h3>
+        <h3>Docker engineering briefing for Spring Boot container delivery</h3>
         <p><strong>Benchmark-driven choices</strong> + <strong>security non-negotiables</strong></p>
       </section>
 
       <section>
-        <h3>Talk map (45 min)</h3>
+        <h3>Agenda</h3>
         <ol>
-          <li>Decision model and benchmark method (8 min)</li>
-          <li>Scenario-by-scenario benchmark findings (7 metric scenarios) (25 min)</li>
-          <li>Security, JVM flags, and production policy (8 min)</li>
-          <li>Rollout checklist and Q&amp;A (4 min)</li>
+          <li>Decision model and benchmark method </li>
+          <li>Scenario-by-scenario benchmark findings (7 metric scenarios) </li>
+          <li>Security, JVM flags, and production policy </li>
         </ol>
       </section>
 
@@ -117,24 +116,20 @@ COPY --from=build /app/target/*.jar app.jar</code></pre>
       <section>
         <section>
           <h3>02 · BuildKit cache mount</h3>
-          <pre><code data-trim>RUN --mount=type=cache,sharing=locked,target=/root/.gradle \
-    ./gradlew --no-daemon dependencies -q</code></pre>
           <ul>
+            <li>Cache mount is usually the biggest build-time lever in CI</li>
             <li>with-cache build avg: <strong>622 ms</strong></li>
             <li>without-cache build avg: <strong>3,410 ms</strong></li>
           </ul>
-          <p><small>&darr; Press down for CI example</small></p>
+          <p><small>&darr; Press down for CI + Dockerfile implementation</small></p>
         </section>
         <section>
-          <h3>02 CI example</h3>
+          <h3>02 CI + Dockerfile example</h3>
           <ul>
             <li>Enable BuildKit in CI runners and persist cache between jobs</li>
             <li>Cache key should include lockfiles and JDK major version</li>
             <li>This is often the highest-ROI Docker optimization</li>
           </ul>
-        </section>
-        <section>
-          <h3>02 Dockerfile example</h3>
           <pre><code data-trim>RUN --mount=type=cache,sharing=locked,target=/root/.gradle \
     ./gradlew --no-daemon dependencies -q</code></pre>
         </section>
@@ -515,38 +510,6 @@ ENTRYPOINT ["java","-XX:AOTCache=app.aot","-XX:MaxRAMPercentage=75","-XX:+ExitOn
       </section>
 
       <section>
-        <h3>Operational reliability checklist</h3>
-        <ul>
-          <li>Readiness probe path aligned with app health semantics</li>
-          <li>Startup time SLO and p95 tracked per release</li>
-          <li>Benchmark success-rate gate in CI:
-            <code>--fail-on-success-rate-below</code>
-          </li>
-          <li>Fallback plan: keep previous stable Docker profile ready for rollback</li>
-        </ul>
-      </section>
-
-      <section>
-        <h3>Common decision anti-patterns</h3>
-        <ul>
-          <li>Picking base image purely by size without runtime behavior checks</li>
-          <li>Copying JVM flags from another service without benchmark validation</li>
-          <li>Treating one quick run as evidence for architectural change</li>
-          <li>Mixing performance and security decisions into one "score"</li>
-        </ul>
-      </section>
-
-      <section>
-        <h3>Rollout strategy for real teams</h3>
-        <ol>
-          <li>Set policy baseline once (security + operability)</li>
-          <li>Benchmark metric-driven options per service profile</li>
-          <li>Adopt smallest set of changes with clear wins</li>
-          <li>Re-run full profile after major framework/JDK upgrades</li>
-        </ol>
-      </section>
-
-      <section>
         <h3>Decision matrix (final slide before Q&amp;A)</h3>
         <table>
           <thead>
@@ -589,11 +552,30 @@ ENTRYPOINT ["java","-XX:AOTCache=app.aot","-XX:MaxRAMPercentage=75","-XX:+ExitOn
         modalContent.innerHTML = "";
       };
 
-      document.querySelectorAll(".zoom-card").forEach((card) => {
-        card.addEventListener("click", (event) => {
+      const buildLabel = (preEl) => {
+        const card = preEl.closest(".zoom-card");
+        if (card) {
+          const cardTitle = card.querySelector("h4");
+          if (cardTitle) {
+            return cardTitle.textContent || "";
+          }
+        }
+        const section = preEl.closest("section");
+        if (section) {
+          const title = section.querySelector("h3, h2");
+          if (title) {
+            return title.textContent || "";
+          }
+        }
+        return "Code block";
+      };
+
+      document.querySelectorAll(".reveal .slides pre").forEach((preEl) => {
+        preEl.addEventListener("click", (event) => {
           event.preventDefault();
           event.stopPropagation();
-          modalContent.innerHTML = card.innerHTML;
+          const label = buildLabel(preEl).trim();
+          modalContent.innerHTML = `<h4>${label}</h4>${preEl.outerHTML}`;
           modal.classList.add("active");
           backdrop.classList.add("active");
         });

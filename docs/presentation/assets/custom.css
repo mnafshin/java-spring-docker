@@ -94,6 +94,7 @@
   box-shadow: 0 10px 24px rgba(2, 6, 23, 0.35);
   max-width: 100%;
   overflow-x: auto;
+  cursor: zoom-in;
 }
 
 .reveal pre code {
@@ -179,6 +180,7 @@
 
 .zoom-modal-content pre {
   margin: 0;
+  cursor: default;
 }
 
 .zoom-modal-content code {
