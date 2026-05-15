@@ -63,6 +63,8 @@ There is no separate warmup phase in the current runner; each recorded row is a 
 
 For historical regression tracking, save a baseline summary with `--output baseline.json` and compare later runs with `--baseline baseline.json --fail-on-regression-above 20`.
 
+The CI workflow uses the checked-in sample baseline under `samples/java-spring-docker/benchmarks/09-base-image-choice/results/baseline.json` to fail fast when the sample report regresses beyond the configured threshold.
+
 When a metric is missing, the analyzer leaves the field empty instead of failing the summary.
 
 ## Reproducibility notes

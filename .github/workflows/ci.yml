@@ -36,3 +36,11 @@ jobs:
 
       - name: Test ${{ matrix.suite }}
         run: pytest tests/${{ matrix.suite }}
+
+      - name: Benchmark regression gate
+        run: |
+          springdocker benchmark analyze \
+            --project-root samples/java-spring-docker \
+            benchmarks/09-base-image-choice/results/raw.csv \
+            --baseline benchmarks/09-base-image-choice/results/baseline.json \
+            --fail-on-regression-above 20
