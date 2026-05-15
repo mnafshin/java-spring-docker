@@ -102,6 +102,7 @@ This repository currently targets:
 - `docs/benchmark-methodology.md`
 - `docs/benchmark-comparison.md`
 - `docs/example-gallery.md`
+- `docs/extensions.md`
 - `docs/security-hardening.md`
 - `docs/multiarch.md`
 - `docs/onboarding.md`

@@ -82,5 +82,6 @@ New features should usually be added in one of these places:
 - config schema and resolution: `config.py`
 - Dockerfile output changes: `dockerfile.py`
 - benchmark reporting: `analyze.py`
+- extension examples and wrapper patterns: `docs/extensions.md`
 
 If a change affects generated output, add tests for both the direct helper and the CLI flow that exercises it.
