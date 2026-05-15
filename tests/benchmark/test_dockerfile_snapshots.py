@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import unittest
-from pathlib import Path
 
 from tests.test_support import ROOT, add_src_to_path
 
