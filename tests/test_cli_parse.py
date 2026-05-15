@@ -23,6 +23,13 @@ class CliParseTests(unittest.TestCase):
         args = parser.parse_args(["doctor"])
         self.assertEqual(args.command, "doctor")
 
+    def test_inspect_parse(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(["inspect", "--format", "json"])
+        self.assertEqual(args.command, "inspect")
+        self.assertEqual(args.format, "json")
+        self.assertEqual(args.project_root, ".")
+
     def test_dockerfile_generate_parse_internal_flags(self) -> None:
         parser = build_parser()
         args = parser.parse_args(

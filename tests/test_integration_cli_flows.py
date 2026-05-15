@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 from shutil import copytree
 from unittest.mock import patch
@@ -90,6 +93,17 @@ class CliIntegrationTests(unittest.TestCase):
         self.assertEqual(code, 0)
         generated = (project / "Dockerfile.test").read_text(encoding="utf-8")
         self.assertIn('ARG MUSTHAVE_MODULES="jdk.crypto.ec,java.naming"', generated)
+
+    def test_inspect_outputs_json_for_maven_fixture(self) -> None:
+        td, project = self._workspace_from_fixture("maven-only")
+        self.addCleanup(td.cleanup)
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            code = main(["inspect", "--project-root", str(project), "--format", "json"])
+        self.assertEqual(code, 0)
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(payload["build_tool"], "maven")
+        self.assertIn("org.springframework.boot:spring-boot-starter-web", payload["direct_dependencies"])
 
 
 if __name__ == "__main__":

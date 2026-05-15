@@ -28,6 +28,7 @@ pipx upgrade springdocker
 ```bash
 springdocker init --project-root samples/java-spring-docker --build-tool maven --profile quick
 springdocker doctor --project-root samples/java-spring-docker
+springdocker inspect --project-root samples/java-spring-docker --format json
 springdocker dockerfile generate --project-root samples/java-spring-docker --output Dockerfile.generated
 springdocker benchmark generate --project-root samples/java-spring-docker --java-version 25
 springdocker benchmark run --project-root samples/java-spring-docker --profile quick --runner-arg --skip-native
@@ -98,3 +99,16 @@ or set:
 ```bash
 export SPRINGDOCKER_LEGACY_SCRIPTS=1
 ```
+
+## Inspect command
+
+`springdocker inspect` prints static metadata about the target project:
+
+- detected build tool
+- Spring Boot version when present
+- Java version when present
+- direct dependency coordinates
+- generated Dockerfile artifacts in the project root
+- basic runtime compatibility guidance
+
+Use `--format json` for machine-readable output.

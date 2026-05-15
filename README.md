@@ -41,6 +41,7 @@ python3 -m venv .venv
 python3 -m pip install -e .
 
 springdocker doctor --project-root samples/java-spring-docker
+springdocker inspect --project-root samples/java-spring-docker --format json
 springdocker init --project-root samples/java-spring-docker --build-tool maven
 springdocker dockerfile generate --project-root samples/java-spring-docker --output Dockerfile.generated
 springdocker benchmark generate --project-root samples/java-spring-docker --java-version 25

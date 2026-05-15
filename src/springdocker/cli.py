@@ -10,6 +10,7 @@ from .commands import (
     cmd_dockerfile_generate,
     cmd_doctor,
     cmd_init,
+    cmd_inspect,
 )
 from .config import (
     load_config,
@@ -47,6 +48,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     doctor = sub.add_parser("doctor", help="Detect project and validate basic prerequisites")
     add_common_options(doctor)
+
+    inspect = sub.add_parser("inspect", help="Inspect project metadata and static compatibility signals")
+    add_common_options(inspect)
+    inspect.add_argument("--format", choices=["table", "json"], default="table")
 
     dockerfile = sub.add_parser("dockerfile", help="Dockerfile operations")
     dockerfile_sub = dockerfile.add_subparsers(dest="dockerfile_command", required=True)
@@ -141,6 +146,9 @@ def main(argv: list[str] | None = None) -> int:
         loaded = load_config(config_path)
         resolved_doctor = resolve_doctor_config(cli_build_tool=args.build_tool, loaded_config=loaded)
         return cmd_doctor(project_root, resolved_doctor.build_tool)
+
+    if args.command == "inspect":
+        return cmd_inspect(project_root=project_root, build_tool=args.build_tool, output_format=args.format)
 
     if args.command == "dockerfile" and args.dockerfile_command == "generate":
         loaded = load_config(project_root / ".springdocker.toml")

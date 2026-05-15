@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 import subprocess
@@ -12,7 +13,7 @@ from .benchmarks.runner import run_benchmarks
 from .config import render_default_config, write_default_config
 from .dockerfile import DockerfileOptions, build_dockerfile
 from .errors import EXIT_FAILURE, EXIT_OK, EXIT_USAGE, print_error, print_warning
-from .project_detect import inspect_project
+from .project_detect import inspect_project, inspect_project_details
 
 
 def run_checked(command: list[str], cwd: Path) -> int:
@@ -33,6 +34,52 @@ def cmd_doctor(project_root: Path, build_tool: str | None) -> int:
     print(f"spring_markers: {'yes' if info.has_spring_markers else 'no'}")
     if not info.has_spring_markers:
         print_warning("Spring Boot markers were not found; continue only if this is intentional.")
+    return EXIT_OK
+
+
+def _render_inspect_table(info) -> str:
+    lines = [
+        "| Field | Value |",
+        "|---|---|",
+        f"| Project root | {info.root} |",
+        f"| Build tool | {info.build_tool} |",
+        f"| Spring markers | {'yes' if info.has_spring_markers else 'no'} |",
+        f"| Java version | {info.java_version if info.java_version is not None else '-'} |",
+        f"| Spring Boot version | {info.spring_boot_version or '-'} |",
+        f"| Config exists | {'yes' if info.config_exists else 'no'} |",
+        f"| Generated Dockerfiles | {', '.join(info.generated_dockerfiles) or '-'} |",
+        f"| Direct dependencies | {', '.join(info.direct_dependencies) or '-'} |",
+        f"| Reflection hits | {len(info.reflection_hits)} |",
+        f"| Runtime compatibility | {info.runtime_compatibility} |",
+        f"| Recommendations | {'; '.join(info.recommendations) or '-'} |",
+    ]
+    return "\n".join(lines)
+
+
+def cmd_inspect(project_root: Path, build_tool: str | None, output_format: str) -> int:
+    try:
+        info = inspect_project_details(project_root, build_tool)
+    except ValueError as exc:
+        print_error(str(exc))
+        return EXIT_USAGE
+
+    payload = {
+        "project_root": str(info.root),
+        "build_tool": info.build_tool,
+        "has_spring_markers": info.has_spring_markers,
+        "java_version": info.java_version,
+        "spring_boot_version": info.spring_boot_version,
+        "direct_dependencies": list(info.direct_dependencies),
+        "config_exists": info.config_exists,
+        "generated_dockerfiles": list(info.generated_dockerfiles),
+        "reflection_hits": list(info.reflection_hits),
+        "runtime_compatibility": info.runtime_compatibility,
+        "recommendations": list(info.recommendations),
+    }
+    if output_format == "json":
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(_render_inspect_table(info))
     return EXIT_OK
 
 
