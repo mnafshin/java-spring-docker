@@ -106,6 +106,20 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Extra argument forwarded to benchmarks/common/run_all_benchmarks.py; repeat for multiple args",
     )
+    bench_run.add_argument("--cpuset-cpus", default=None, help="Pin benchmark containers to a CPU set")
+    bench_run.add_argument("--memory", default=None, help="Limit benchmark containers to a memory amount")
+    bench_run.add_argument(
+        "--warmup-runs",
+        type=int,
+        default=None,
+        help="Run extra warmup iterations before recording benchmark rows",
+    )
+    bench_run.add_argument(
+        "--normalized-runtime",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Apply normalized container runtime flags for reproducible benchmark runs",
+    )
     bench_run.add_argument(
         "--use-legacy-scripts",
         action=argparse.BooleanOptionalAction,
@@ -218,6 +232,10 @@ def main(argv: list[str] | None = None) -> int:
             cli_build_tool=args.build_tool,
             cli_profile=args.profile,
             cli_runner_args=args.runner_arg,
+            cli_cpuset_cpus=args.cpuset_cpus,
+            cli_memory_limit=args.memory,
+            cli_warmup_runs=args.warmup_runs,
+            cli_normalized_runtime=args.normalized_runtime,
             cli_use_legacy_scripts=args.use_legacy_scripts,
             loaded_config=loaded,
         )
@@ -226,6 +244,10 @@ def main(argv: list[str] | None = None) -> int:
             build_tool=resolved_run.build_tool,
             profile=resolved_run.profile,
             extra_args=resolved_run.runner_args,
+            cpuset_cpus=resolved_run.cpuset_cpus,
+            memory_limit=resolved_run.memory_limit,
+            warmup_runs=resolved_run.warmup_runs,
+            normalized_runtime=resolved_run.normalized_runtime,
             use_legacy_scripts=resolved_run.use_legacy_scripts,
         )
 

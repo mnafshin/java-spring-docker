@@ -98,13 +98,33 @@ def _tag_for(scenario_id: str, variant_name: str) -> str:
     return f"bench-{scenario_id}:{variant_name}".replace("_", "-")
 
 
+def _runtime_flags(cpuset_cpus: str | None, memory_limit: str | None, normalized_runtime: bool) -> list[str]:
+    flags: list[str] = []
+    if cpuset_cpus:
+        flags.extend(["--cpuset-cpus", cpuset_cpus])
+    if memory_limit:
+        flags.extend(["--memory", memory_limit])
+    if normalized_runtime:
+        flags.extend(["--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges", "--tmpfs", "/tmp"])
+    return flags
+
+
 def _default_runs_for(profile: str, scenario_id: str) -> int:
     if scenario_id == "04-jep483-aot-cache":
         return 8 if profile == "quick" else 15
     return 3 if profile == "quick" else 10
 
 
-def _run_standard_scenario(project_root: Path, scenario_dir: Path, runs: int, run_profile: str) -> None:
+def _run_standard_scenario(
+    project_root: Path,
+    scenario_dir: Path,
+    runs: int,
+    run_profile: str,
+    cpuset_cpus: str | None,
+    memory_limit: str | None,
+    warmup_runs: int,
+    normalized_runtime: bool,
+) -> None:
     raw_csv = scenario_dir / "results" / "raw.csv"
     _ensure_csv(raw_csv)
     host = socket.gethostname()
@@ -121,7 +141,36 @@ def _run_standard_scenario(project_root: Path, scenario_dir: Path, runs: int, ru
         variant = variant_dir.name
         image_tag = _tag_for(scenario, variant)
         host_port = str(19081 + index)
+        runtime_flags = _runtime_flags(cpuset_cpus=cpuset_cpus, memory_limit=memory_limit, normalized_runtime=normalized_runtime)
         print(f"-- variant: {variant}")
+
+        for warmup_number in range(1, warmup_runs + 1):
+            warmup_container = f"{image_tag.replace(':', '-')}-warmup-{warmup_number}"
+            subprocess.run(
+                [
+                    "docker",
+                    "run",
+                    "-d",
+                    "--rm",
+                    "--name",
+                    warmup_container,
+                    "-p",
+                    f"{host_port}:8081",
+                    *runtime_flags,
+                    image_tag,
+                ],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            warmup_start = _wait_readiness("http://localhost:" + host_port + "/actuator/health/readiness")
+            subprocess.run(
+                ["docker", "stop", warmup_container],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            print(f"warmup {warmup_number}: startup={warmup_start}")
 
         for run_number in range(1, runs + 1):
             build_start = time.time()
@@ -172,6 +221,7 @@ def _run_standard_scenario(project_root: Path, scenario_dir: Path, runs: int, ru
                     container_name,
                     "-p",
                     f"{host_port}:8081",
+                    *runtime_flags,
                     image_tag,
                 ],
                 check=False,
@@ -206,7 +256,16 @@ def _run_standard_scenario(project_root: Path, scenario_dir: Path, runs: int, ru
             )
 
 
-def run_benchmarks(project_root: Path, build_tool: str, profile: str, extra_args: list[str]) -> int:
+def run_benchmarks(
+    project_root: Path,
+    build_tool: str,
+    profile: str,
+    extra_args: list[str],
+    cpuset_cpus: str | None = None,
+    memory_limit: str | None = None,
+    warmup_runs: int = 0,
+    normalized_runtime: bool = False,
+) -> int:
     options = parse_runner_args(profile=profile, extra_args=extra_args)
     print(f"Using profile: {options.profile}")
     print(f"Project root: {project_root}")
@@ -226,6 +285,15 @@ def run_benchmarks(project_root: Path, build_tool: str, profile: str, extra_args
             print(f"Skipping missing scenario directory: {scenario.id}")
             continue
         runs = options.runs_override or _default_runs_for(profile=options.profile, scenario_id=scenario.id)
-        _run_standard_scenario(project_root=project_root, scenario_dir=scenario_dir, runs=runs, run_profile=options.profile)
+        _run_standard_scenario(
+            project_root=project_root,
+            scenario_dir=scenario_dir,
+            runs=runs,
+            run_profile=options.profile,
+            cpuset_cpus=cpuset_cpus,
+            memory_limit=memory_limit,
+            warmup_runs=warmup_runs,
+            normalized_runtime=normalized_runtime,
+        )
     print("\nAll done. CSV results were updated.")
     return 0

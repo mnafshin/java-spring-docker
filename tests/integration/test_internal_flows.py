@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
@@ -79,6 +79,10 @@ class InternalFlowTests(unittest.TestCase):
                         build_tool=None,
                         profile="quick",
                         extra_args=["--runs", "1", "--skip-native"],
+                        cpuset_cpus=None,
+                        memory_limit=None,
+                        warmup_runs=0,
+                        normalized_runtime=False,
                         use_legacy_scripts=False,
                     )
             self.assertEqual(code, 0)
@@ -116,6 +120,26 @@ class InternalFlowTests(unittest.TestCase):
         self.assertIn("gcr.io/distroless/java25-debian12:nonroot", dockerfile)
         self.assertNotIn("RUN groupadd", dockerfile)
         self.assertNotIn("RUN install -d -m 755 /app", dockerfile)
+
+    def test_benchmark_run_rejects_reproducibility_controls_with_legacy_scripts(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "pom.xml").write_text("<project/>", encoding="utf-8")
+            stderr = StringIO()
+            with redirect_stderr(stderr):
+                code = cmd_benchmark_run(
+                    project_root=root,
+                    build_tool=None,
+                    profile="quick",
+                    extra_args=[],
+                    cpuset_cpus="0-1",
+                    memory_limit=None,
+                    warmup_runs=0,
+                    normalized_runtime=False,
+                    use_legacy_scripts=True,
+                )
+            self.assertEqual(code, 2)
+            self.assertIn("internal benchmark runner", stderr.getvalue())
 
 
 if __name__ == "__main__":

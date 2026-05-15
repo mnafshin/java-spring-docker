@@ -26,23 +26,50 @@ class ConfigTests(unittest.TestCase):
     def test_resolve_benchmark_config_from_file(self) -> None:
         loaded = {
             "project": {"build_tool": "maven"},
-            "benchmark": {"run": {"profile": "full", "runner_args": ["--skip-native"], "legacy_scripts": True}},
+            "benchmark": {
+                "run": {
+                    "profile": "full",
+                    "runner_args": ["--skip-native"],
+                    "cpuset_cpus": "0-1",
+                    "memory_limit": "2g",
+                    "warmup_runs": 2,
+                    "normalized_runtime": True,
+                    "legacy_scripts": True,
+                }
+            },
         }
-        resolved = resolve_benchmark_run_config(None, None, None, None, loaded)
+        resolved = resolve_benchmark_run_config(None, None, None, None, None, None, None, None, loaded)
         self.assertEqual(resolved.build_tool, "maven")
         self.assertEqual(resolved.profile, "full")
         self.assertEqual(resolved.runner_args, ["--skip-native"])
+        self.assertEqual(resolved.cpuset_cpus, "0-1")
+        self.assertEqual(resolved.memory_limit, "2g")
+        self.assertEqual(resolved.warmup_runs, 2)
+        self.assertTrue(resolved.normalized_runtime)
         self.assertTrue(resolved.use_legacy_scripts)
 
     def test_cli_overrides_config(self) -> None:
         loaded = {
             "project": {"build_tool": "maven"},
-            "benchmark": {"run": {"profile": "full", "runner_args": ["--skip-native"]}},
+            "benchmark": {
+                "run": {
+                    "profile": "full",
+                    "runner_args": ["--skip-native"],
+                    "cpuset_cpus": "0-1",
+                    "memory_limit": "2g",
+                    "warmup_runs": 1,
+                    "normalized_runtime": False,
+                }
+            },
         }
-        resolved = resolve_benchmark_run_config("gradle", "quick", ["--runs", "2"], False, loaded)
+        resolved = resolve_benchmark_run_config("gradle", "quick", ["--runs", "2"], "2-3", "1g", 0, True, False, loaded)
         self.assertEqual(resolved.build_tool, "gradle")
         self.assertEqual(resolved.profile, "quick")
         self.assertEqual(resolved.runner_args, ["--runs", "2"])
+        self.assertEqual(resolved.cpuset_cpus, "2-3")
+        self.assertEqual(resolved.memory_limit, "1g")
+        self.assertEqual(resolved.warmup_runs, 0)
+        self.assertTrue(resolved.normalized_runtime)
         self.assertFalse(resolved.use_legacy_scripts)
 
     def test_resolve_other_command_configs(self) -> None:

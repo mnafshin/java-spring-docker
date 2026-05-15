@@ -37,6 +37,10 @@ class BenchmarkRunConfig:
     build_tool: str | None
     profile: str
     runner_args: list[str]
+    cpuset_cpus: str | None
+    memory_limit: str | None
+    warmup_runs: int
+    normalized_runtime: bool
     use_legacy_scripts: bool
 
 
@@ -63,6 +67,10 @@ def render_default_config(build_tool: str, profile: str = "quick") -> str:
         "[benchmark.run]\n"
         f'profile = "{profile}"\n'
         "runner_args = [\"--skip-native\"]\n"
+        "# cpuset_cpus = \"0-1\"\n"
+        "# memory_limit = \"2g\"\n"
+        "# warmup_runs = 1\n"
+        "# normalized_runtime = false\n"
         "legacy_scripts = false\n"
     )
 
@@ -139,7 +147,7 @@ def _validate_schema(data: dict[str, Any]) -> None:
             {"output", "java_version", "must_have_modules_file", "legacy_scripts", "wizard_args"},
         ),
         ("benchmark", benchmark, {"run", "generate", "profile", "runner_args"}),
-        ("benchmark.run", benchmark_run, {"profile", "runner_args", "legacy_scripts"}),
+        ("benchmark.run", benchmark_run, {"profile", "runner_args", "cpuset_cpus", "memory_limit", "warmup_runs", "normalized_runtime", "legacy_scripts"}),
         ("benchmark.generate", benchmark_generate, {"java_version", "legacy_scripts"}),
     ]:
         unknown = sorted(set(section.keys()) - allowed_keys)
@@ -155,6 +163,10 @@ def _validate_schema(data: dict[str, Any]) -> None:
     _expect_optional_str_list(dockerfile.get("wizard_args"), "dockerfile.wizard_args")
     _expect_optional_str(benchmark_run.get("profile"), "benchmark.run.profile")
     _expect_optional_str_list(benchmark_run.get("runner_args"), "benchmark.run.runner_args")
+    _expect_optional_str(benchmark_run.get("cpuset_cpus"), "benchmark.run.cpuset_cpus")
+    _expect_optional_str(benchmark_run.get("memory_limit"), "benchmark.run.memory_limit")
+    _expect_optional_int(benchmark_run.get("warmup_runs"), "benchmark.run.warmup_runs")
+    _expect_optional_bool(benchmark_run.get("normalized_runtime"), "benchmark.run.normalized_runtime")
     _expect_optional_bool(benchmark_run.get("legacy_scripts"), "benchmark.run.legacy_scripts")
     _expect_optional_int(benchmark_generate.get("java_version"), "benchmark.generate.java_version")
     _expect_optional_bool(benchmark_generate.get("legacy_scripts"), "benchmark.generate.legacy_scripts")
@@ -256,6 +268,10 @@ def resolve_benchmark_run_config(
     cli_build_tool: str | None,
     cli_profile: str | None,
     cli_runner_args: list[str] | None,
+    cli_cpuset_cpus: str | None,
+    cli_memory_limit: str | None,
+    cli_warmup_runs: int | None,
+    cli_normalized_runtime: bool | None,
     cli_use_legacy_scripts: bool | None,
     loaded_config: dict[str, Any],
 ) -> BenchmarkRunConfig:
@@ -281,6 +297,31 @@ def resolve_benchmark_run_config(
             or []
         )
 
+    if cli_cpuset_cpus is not None:
+        cpuset_cpus = cli_cpuset_cpus
+    else:
+        cpuset_cpus = _expect_optional_str(run_cfg.get("cpuset_cpus"), "benchmark.run.cpuset_cpus")
+
+    if cli_memory_limit is not None:
+        memory_limit = cli_memory_limit
+    else:
+        memory_limit = _expect_optional_str(run_cfg.get("memory_limit"), "benchmark.run.memory_limit")
+
+    if cli_warmup_runs is not None:
+        warmup_runs = cli_warmup_runs
+    else:
+        warmup_runs = _expect_optional_int(run_cfg.get("warmup_runs"), "benchmark.run.warmup_runs") or 0
+    if warmup_runs < 0:
+        raise ValueError("benchmark.run.warmup_runs must be >= 0")
+
+    if cli_normalized_runtime is not None:
+        normalized_runtime = cli_normalized_runtime
+    else:
+        normalized_runtime = _expect_optional_bool(
+            run_cfg.get("normalized_runtime"),
+            "benchmark.run.normalized_runtime",
+        ) or False
+
     if cli_use_legacy_scripts is not None:
         use_legacy = cli_use_legacy_scripts
     else:
@@ -290,5 +331,9 @@ def resolve_benchmark_run_config(
         build_tool=build_tool,
         profile=profile,
         runner_args=runner_args,
+        cpuset_cpus=cpuset_cpus,
+        memory_limit=memory_limit,
+        warmup_runs=warmup_runs,
+        normalized_runtime=normalized_runtime,
         use_legacy_scripts=use_legacy,
     )

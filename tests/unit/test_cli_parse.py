@@ -62,6 +62,26 @@ class CliParseTests(unittest.TestCase):
         self.assertEqual(args.benchmark_command, "run")
         self.assertEqual(args.profile, "full")
 
+    def test_benchmark_run_parse_reproducibility_flags(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(
+            [
+                "benchmark",
+                "run",
+                "--cpuset-cpus",
+                "0-1",
+                "--memory",
+                "2g",
+                "--warmup-runs",
+                "2",
+                "--normalized-runtime",
+            ]
+        )
+        self.assertEqual(args.cpuset_cpus, "0-1")
+        self.assertEqual(args.memory, "2g")
+        self.assertEqual(args.warmup_runs, 2)
+        self.assertTrue(args.normalized_runtime)
+
     def test_benchmark_analyze_parse(self) -> None:
         parser = build_parser()
         args = parser.parse_args([

@@ -78,6 +78,10 @@ legacy_scripts = false
 [benchmark.run]
 profile = "quick"
 runner_args = ["--skip-native"]
+cpuset_cpus = "0-1"
+memory_limit = "2g"
+warmup_runs = 1
+normalized_runtime = true
 legacy_scripts = false
 ```
 
@@ -155,3 +159,14 @@ See `docs/multiarch.md` for the Buildx-friendly Dockerfile output and example mu
 - `--baseline-variant` selects the variant to compare against.
 - `--scenario` narrows the CSV to one scenario.
 - `--format json` produces machine-readable deltas.
+
+## Benchmark run reproducibility
+
+`springdocker benchmark run` supports deterministic benchmark controls for local or CI runs:
+
+- `--cpuset-cpus` pins benchmark containers to specific CPUs.
+- `--memory` caps container memory.
+- `--warmup-runs` executes discarded warmup probes before recording results.
+- `--normalized-runtime` applies read-only, no-new-privileges, and tmpfs isolation.
+
+These settings can also come from `[benchmark.run]` in `.springdocker.toml`.

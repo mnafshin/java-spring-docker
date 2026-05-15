@@ -47,7 +47,7 @@ The internal runner captures:
 4. Build or readiness failure status.
 5. Host metadata and Docker version for traceability.
 
-There is no separate warmup phase in the current runner; each recorded row is a full build-and-probe attempt.
+Warmup runs are optional and are executed before recording rows; they are excluded from `raw.csv`.
 
 ## Statistical handling
 
@@ -65,6 +65,17 @@ For historical regression tracking, save a baseline summary with `--output basel
 
 The CI workflow uses the checked-in sample baseline under `samples/java-spring-docker/benchmarks/09-base-image-choice/results/baseline.json` to fail fast when the sample report regresses beyond the configured threshold.
 
+## Reproducibility controls
+
+`springdocker benchmark run` supports optional isolation controls for more stable comparisons:
+
+- `--cpuset-cpus` pins container execution to specific CPUs.
+- `--memory` caps the container memory allocation.
+- `--warmup-runs` performs discarded warmup probes before the measured runs.
+- `--normalized-runtime` applies read-only/no-new-privileges/tmpfs runtime hardening.
+
+The same keys can be set under `[benchmark.run]` in `.springdocker.toml`.
+
 When a metric is missing, the analyzer leaves the field empty instead of failing the summary.
 
 ## Reproducibility notes
@@ -77,4 +88,4 @@ When a metric is missing, the analyzer leaves the field empty instead of failing
 
 - The runner assumes Docker is available on the host.
 - Native scenarios are skipped by the internal runner.
-- Statistical thresholds currently exist only for success rate.
+- The current reproducibility controls are opt-in and do not change defaults.

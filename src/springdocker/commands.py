@@ -313,12 +313,20 @@ def cmd_benchmark_run(
     build_tool: str | None,
     profile: str,
     extra_args: list[str],
+    cpuset_cpus: str | None,
+    memory_limit: str | None,
+    warmup_runs: int,
+    normalized_runtime: bool,
     use_legacy_scripts: bool,
 ) -> int:
     try:
         info = inspect_project(project_root, build_tool)
     except ValueError as exc:
         print_error(str(exc))
+        return EXIT_USAGE
+
+    if use_legacy_scripts and any([cpuset_cpus, memory_limit, warmup_runs > 0, normalized_runtime]):
+        print_error("benchmark reproducibility controls require the internal benchmark runner")
         return EXIT_USAGE
 
     if _use_legacy_scripts(use_legacy_scripts):
@@ -343,6 +351,10 @@ def cmd_benchmark_run(
         build_tool=info.build_tool,
         profile=profile,
         extra_args=extra_args,
+        cpuset_cpus=cpuset_cpus,
+        memory_limit=memory_limit,
+        warmup_runs=warmup_runs,
+        normalized_runtime=normalized_runtime,
     )
 
 
