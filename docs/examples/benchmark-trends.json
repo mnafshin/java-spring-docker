@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-05-15",
+  "series": [
+    {
+      "scenario": "09-base-image-choice",
+      "metric": "startup_avg_ms",
+      "points": [
+        {"variant": "minimal-runtime", "value": 1252.7},
+        {"variant": "temurin-jre", "value": 1158.7}
+      ]
+    },
+    {
+      "scenario": "09-base-image-choice",
+      "metric": "image_mb_avg",
+      "points": [
+        {"variant": "minimal-runtime", "value": 134.8},
+        {"variant": "temurin-jre", "value": 134.8}
+      ]
+    }
+  ]
+}

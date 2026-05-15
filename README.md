@@ -102,6 +102,7 @@ This repository currently targets:
 - `docs/benchmark-methodology.md`
 - `docs/benchmark-comparison.md`
 - `docs/example-gallery.md`
+- `docs/benchmark-dashboard.md`
 - `docs/extensions.md`
 - `docs/native-image-roadmap.md`
 - `docs/distribution.md`
