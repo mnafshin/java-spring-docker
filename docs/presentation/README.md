@@ -16,6 +16,7 @@ Open:
 ## Files
 
 - `index.html`: main slide deck
+- `newPresentation_idea.html`: alternate Reveal.js deck
 - `assets/custom.css`: deck styling
 
 ## Notes
