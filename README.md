@@ -101,6 +101,7 @@ This repository currently targets:
 - `docs/architecture.md`
 - `docs/benchmark-methodology.md`
 - `docs/benchmark-comparison.md`
+- `docs/example-gallery.md`
 - `docs/security-hardening.md`
 - `docs/multiarch.md`
 - `docs/onboarding.md`

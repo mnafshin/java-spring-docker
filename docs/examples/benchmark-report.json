@@ -1,0 +1,32 @@
+[
+  {
+    "scenario": "06-base-image-choice",
+    "variant": "distroless-nonroot",
+    "runs": 5,
+    "build_avg_ms": 1280.0,
+    "startup_avg_ms": 420.0,
+    "startup_p95_ms": 450.0,
+    "image_mb_avg": 98.0,
+    "rss_mb_avg": 112.0,
+    "cpu_pct_avg": 31.5,
+    "success_rate_pct": 100.0,
+    "host": "example-host",
+    "docker_version": "24.0",
+    "run_profile": "quick"
+  },
+  {
+    "scenario": "06-base-image-choice",
+    "variant": "temurin-jre",
+    "runs": 5,
+    "build_avg_ms": 1180.0,
+    "startup_avg_ms": 470.0,
+    "startup_p95_ms": 500.0,
+    "image_mb_avg": 154.0,
+    "rss_mb_avg": 118.0,
+    "cpu_pct_avg": 33.0,
+    "success_rate_pct": 100.0,
+    "host": "example-host",
+    "docker_version": "24.0",
+    "run_profile": "quick"
+  }
+]
