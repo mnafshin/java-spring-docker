@@ -1,5 +1,5 @@
 :root {
-  --r-main-font-size: 25px;
+  --r-main-font-size: 24px;
   --deck-bg-1: #0f172a;
   --deck-bg-2: #1e293b;
   --deck-accent: #38bdf8;
@@ -107,28 +107,100 @@
   line-height: 1.22;
 }
 
-.reveal .progressive-next {
-  margin-top: 0.5em;
-  padding: 0.28em 0.75em;
-  border: 1px solid rgba(148, 163, 184, 0.45);
+.reveal .zoom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.reveal .zoom-card {
+  border: 1px solid rgba(148, 163, 184, 0.34);
   border-radius: 8px;
-  background: rgba(30, 41, 59, 0.8);
-  color: #dbeafe;
-  font-size: 0.55em;
-  cursor: pointer;
+  background: rgba(15, 23, 42, 0.7);
+  padding: 8px 10px;
+  cursor: zoom-in;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
 
-.reveal .progressive-next:hover {
-  border-color: rgba(56, 189, 248, 0.7);
+.reveal .zoom-card:hover {
+  border-color: rgba(56, 189, 248, 0.65);
+  box-shadow: 0 10px 28px rgba(2, 6, 23, 0.4);
 }
 
-.reveal .progressive-pop {
-  animation: pop-in 220ms ease-out;
+.zoom-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.65);
+  backdrop-filter: blur(2px);
+  z-index: 10000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
 }
 
-@keyframes pop-in {
-  from { transform: scale(0.96); opacity: 0.35; }
-  to { transform: scale(1); opacity: 1; }
+.zoom-backdrop.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.zoom-modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 10001;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.zoom-modal.active {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.zoom-modal-content {
+  width: min(88vw, 1100px);
+  max-height: 82vh;
+  overflow: auto;
+  border: 1px solid rgba(56, 189, 248, 0.8);
+  border-radius: 10px;
+  box-shadow: 0 24px 70px rgba(2, 6, 23, 0.7);
+  background: rgba(15, 23, 42, 0.96);
+  padding: 10px 12px;
+}
+
+.zoom-modal-content h4 {
+  margin: 0 0 8px 0;
+  font-size: 1.6em;
+  color: #7dd3fc;
+}
+
+.zoom-modal-content pre {
+  margin: 0;
+}
+
+.zoom-modal-content code {
+  font-size: 1.45em;
+  line-height: 1.5;
+  color: #93c5fd;
+}
+
+.reveal .zoom-card h4 {
+  margin: 0 0 6px 0;
+  font-size: 0.56em;
+  color: #7dd3fc;
+  letter-spacing: 0.01em;
+}
+
+.reveal .zoom-card pre {
+  margin: 0;
+}
+
+.reveal .zoom-card code {
+  font-size: 0.52em;
+  line-height: 1.2;
 }
 
 .reveal table {

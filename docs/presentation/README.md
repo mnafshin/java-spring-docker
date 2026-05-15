@@ -11,7 +11,7 @@ python3 -m http.server 8000
 
 Open:
 
-- `http://localhost:8000/docs/revealjs-docker-best-practices/`
+- `http://localhost:8000/docs/presentation/index.html` in your browser to view the presentation.
 
 ## Files
 
@@ -21,4 +21,3 @@ Open:
 ## Notes
 
 - Reveal.js is loaded from CDN (no local npm setup required).
-- The deck references deep-dive content under `benchmarks/*/DEEP_DIVE.md` and AOT docs in `benchmarks/04-jep483-aot-cache/`.
