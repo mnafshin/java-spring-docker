@@ -297,35 +297,43 @@ def resolve_benchmark_run_config(
             or []
         )
 
+    cpuset_cpus: str | None
     if cli_cpuset_cpus is not None:
         cpuset_cpus = cli_cpuset_cpus
     else:
         cpuset_cpus = _expect_optional_str(run_cfg.get("cpuset_cpus"), "benchmark.run.cpuset_cpus")
 
+    memory_limit: str | None
     if cli_memory_limit is not None:
         memory_limit = cli_memory_limit
     else:
         memory_limit = _expect_optional_str(run_cfg.get("memory_limit"), "benchmark.run.memory_limit")
 
+    warmup_runs: int
     if cli_warmup_runs is not None:
         warmup_runs = cli_warmup_runs
     else:
-        warmup_runs = _expect_optional_int(run_cfg.get("warmup_runs"), "benchmark.run.warmup_runs") or 0
+        raw_warmup_runs = _expect_optional_int(run_cfg.get("warmup_runs"), "benchmark.run.warmup_runs")
+        warmup_runs = raw_warmup_runs if raw_warmup_runs is not None else 0
     if warmup_runs < 0:
         raise ValueError("benchmark.run.warmup_runs must be >= 0")
 
+    normalized_runtime: bool
     if cli_normalized_runtime is not None:
         normalized_runtime = cli_normalized_runtime
     else:
-        normalized_runtime = _expect_optional_bool(
+        raw_normalized_runtime = _expect_optional_bool(
             run_cfg.get("normalized_runtime"),
             "benchmark.run.normalized_runtime",
-        ) or False
+        )
+        normalized_runtime = raw_normalized_runtime if raw_normalized_runtime is not None else False
 
+    use_legacy: bool
     if cli_use_legacy_scripts is not None:
         use_legacy = cli_use_legacy_scripts
     else:
-        use_legacy = _expect_optional_bool(run_cfg.get("legacy_scripts"), "benchmark.run.legacy_scripts") or False
+        raw_use_legacy = _expect_optional_bool(run_cfg.get("legacy_scripts"), "benchmark.run.legacy_scripts")
+        use_legacy = raw_use_legacy if raw_use_legacy is not None else False
 
     return BenchmarkRunConfig(
         build_tool=build_tool,
