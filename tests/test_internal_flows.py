@@ -39,6 +39,8 @@ class InternalFlowTests(unittest.TestCase):
             generated = (root / "Dockerfile.generated").read_text(encoding="utf-8")
             self.assertTrue((root / "Dockerfile.generated").exists())
             self.assertIn("VOLUME /tmp", generated)
+            self.assertIn("ARG TARGETPLATFORM", generated)
+            self.assertIn("--platform=$BUILDPLATFORM", generated)
 
     def test_benchmark_generate_without_legacy_script(self) -> None:
         with tempfile.TemporaryDirectory() as td:

@@ -132,6 +132,10 @@ Use `--format json` when you want stable structured output.
 
 See `docs/security-hardening.md` for the runtime hardening defaults and recommended `docker run` flags.
 
+## Multi-architecture builds
+
+See `docs/multiarch.md` for the Buildx-friendly Dockerfile output and example multi-arch build command.
+
 ## Compare command
 
 `springdocker benchmark compare` compares each variant against a required baseline variant and reports deltas.
