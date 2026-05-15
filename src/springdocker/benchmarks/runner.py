@@ -99,7 +99,7 @@ def _tag_for(scenario_id: str, variant_name: str) -> str:
 
 
 def _default_runs_for(profile: str, scenario_id: str) -> int:
-    if scenario_id == "05-jep483-aot-cache":
+    if scenario_id == "04-jep483-aot-cache":
         return 8 if profile == "quick" else 15
     return 3 if profile == "quick" else 10
 

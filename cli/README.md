@@ -31,9 +31,9 @@ springdocker doctor --project-root samples/java-spring-docker
 springdocker dockerfile generate --project-root samples/java-spring-docker --output Dockerfile.generated
 springdocker benchmark generate --project-root samples/java-spring-docker --java-version 25
 springdocker benchmark run --project-root samples/java-spring-docker --profile quick --runner-arg --skip-native
-springdocker benchmark analyze --project-root samples/java-spring-docker benchmarks/05-jep483-aot-cache/results/raw.csv --format table
-springdocker benchmark analyze --project-root samples/java-spring-docker benchmarks/05-jep483-aot-cache/results/raw.csv --format json --output benchmarks/05-jep483-aot-cache/results/summary.json
-springdocker benchmark analyze --project-root samples/java-spring-docker benchmarks/05-jep483-aot-cache/results/raw.csv --fail-on-success-rate-below 95
+springdocker benchmark analyze --project-root samples/java-spring-docker benchmarks/04-jep483-aot-cache/results/raw.csv --format table
+springdocker benchmark analyze --project-root samples/java-spring-docker benchmarks/04-jep483-aot-cache/results/raw.csv --format json --output benchmarks/04-jep483-aot-cache/results/summary.json
+springdocker benchmark analyze --project-root samples/java-spring-docker benchmarks/04-jep483-aot-cache/results/raw.csv --fail-on-success-rate-below 95
 ```
 
 ## Config file (`.springdocker.toml`)

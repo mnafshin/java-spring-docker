@@ -21,5 +21,4 @@ Then open:
 ## Notes
 
 - Reveal.js is loaded from CDN (no npm setup required).
-- The deck references deep-dive content under `benchmarks/*/DEEP_DIVE.md` and AOT docs in `benchmarks/05-jep483-aot-cache/`.
-
+- The deck references deep-dive content under `benchmarks/*/DEEP_DIVE.md` and AOT docs in `benchmarks/04-jep483-aot-cache/`.

@@ -47,7 +47,7 @@ class InternalFlowTests(unittest.TestCase):
                 use_legacy_scripts=False,
             )
             self.assertEqual(code, 0)
-            self.assertTrue((root / "benchmarks" / "01-base-image-pinning" / "variants").exists())
+            self.assertTrue((root / "benchmarks" / "01-multi-stage-build-structure" / "variants").exists())
 
     def test_benchmark_run_without_legacy_script(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -73,12 +73,12 @@ class InternalFlowTests(unittest.TestCase):
                         use_legacy_scripts=False,
                     )
             self.assertEqual(code, 0)
-            raw_csv = root / "benchmarks" / "01-base-image-pinning" / "results" / "raw.csv"
+            raw_csv = root / "benchmarks" / "01-multi-stage-build-structure" / "results" / "raw.csv"
             self.assertTrue(raw_csv.exists())
-            self.assertIn("01-base-image-pinning", raw_csv.read_text(encoding="utf-8"))
-            self.assertIn("=== Scenario: 01-base-image-pinning", stdout.getvalue())
+            self.assertIn("01-multi-stage-build-structure", raw_csv.read_text(encoding="utf-8"))
+            self.assertIn("=== Scenario: 01-multi-stage-build-structure", stdout.getvalue())
             self.assertIn("run 1:", stdout.getvalue())
-            self.assertIn("Skipping native scenario: 10-native-vs-jvm", stdout.getvalue())
+            self.assertIn("Skipping native scenario: 07-native-vs-jvm", stdout.getvalue())
 
 
 if __name__ == "__main__":

@@ -22,35 +22,28 @@ def default_scenarios(build_tool: str, java_version: int) -> list[ScenarioDefini
     base = DockerfileOptions(build_tool=build_tool, java_version=java_version)
     return [
         ScenarioDefinition(
-            id="01-base-image-pinning",
-            variants=(
-                ("digest-pinned", base),
-                ("tag-only", DockerfileOptions(build_tool=build_tool, java_version=java_version, tuned_jvm_flags=False)),
-            ),
-        ),
-        ScenarioDefinition(
-            id="02-multi-stage-build-structure",
+            id="01-multi-stage-build-structure",
             variants=(
                 ("specialized-multi-stage", base),
                 ("simple-two-stage", DockerfileOptions(build_tool=build_tool, java_version=java_version, use_buildkit_cache=False)),
             ),
         ),
         ScenarioDefinition(
-            id="03-buildkit-gradle-cache",
+            id="02-buildkit-gradle-cache",
             variants=(
                 ("with-buildkit-cache", base),
                 ("without-buildkit-cache", DockerfileOptions(build_tool=build_tool, java_version=java_version, use_buildkit_cache=False)),
             ),
         ),
         ScenarioDefinition(
-            id="04-custom-jre-jlink",
+            id="03-custom-jre-jlink",
             variants=(
                 ("with-jlink-runtime", base),
                 ("without-jlink-runtime", DockerfileOptions(build_tool=build_tool, java_version=java_version, use_jlink=False)),
             ),
         ),
         ScenarioDefinition(
-            id="05-jep483-aot-cache",
+            id="04-jep483-aot-cache",
             variants=(
                 ("with-aot-cache", base),
                 ("without-aot-cache", DockerfileOptions(build_tool=build_tool, java_version=java_version, tuned_jvm_flags=False)),
@@ -58,35 +51,21 @@ def default_scenarios(build_tool: str, java_version: int) -> list[ScenarioDefini
             run_overrides={"quick": 8, "full": 15},
         ),
         ScenarioDefinition(
-            id="06-runtime-hardening-non-root-tmp",
-            variants=(
-                ("hardened-non-root", base),
-                ("root-runtime", DockerfileOptions(build_tool=build_tool, java_version=java_version, non_root=False, healthcheck=True)),
-            ),
-        ),
-        ScenarioDefinition(
-            id="07-healthcheck-readiness",
-            variants=(
-                ("with-readiness-healthcheck", base),
-                ("without-healthcheck", DockerfileOptions(build_tool=build_tool, java_version=java_version, healthcheck=False)),
-            ),
-        ),
-        ScenarioDefinition(
-            id="08-jvm-container-flags",
+            id="05-jvm-container-flags",
             variants=(
                 ("tuned-flags", base),
                 ("defaults-like", DockerfileOptions(build_tool=build_tool, java_version=java_version, tuned_jvm_flags=False)),
             ),
         ),
         ScenarioDefinition(
-            id="09-base-image-choice",
+            id="06-base-image-choice",
             variants=(
                 ("temurin-jre", base),
                 ("minimal-runtime", DockerfileOptions(build_tool=build_tool, java_version=java_version, use_buildkit_cache=False, tuned_jvm_flags=False)),
             ),
         ),
         ScenarioDefinition(
-            id="10-native-vs-jvm",
+            id="07-native-vs-jvm",
             variants=(),
             scenario_type="native",
         ),

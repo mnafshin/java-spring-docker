@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your Dockerfile Is Burning Money</title>
+  <title>From Dockerfile Guesswork to Proof</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" id="theme">
   <link rel="stylesheet" href="assets/custom.css">
@@ -12,219 +12,371 @@
   <div class="reveal">
     <div class="slides">
       <section>
-        <h2>Your Dockerfile Is Burning Money</h2>
-         <h3>10 Benchmarks That Cut Build Time, Image Size, and Startup Risk</h3>
-        <p>Java 25 + Spring Boot 4 + production-like Spring app + real measurements</p>
+        <h1>From Dockerfile Guesswork to Proof</h1>
+        <h3>45-minute decision playbook for Spring Boot container engineering</h3>
+        <p><strong>Benchmark-driven choices</strong> + <strong>security non-negotiables</strong></p>
       </section>
 
       <section>
-        <h3>The ROI in 20 Minutes</h3>
+        <h3>Talk map (45 min)</h3>
+        <ol>
+          <li>Decision model and benchmark method (8 min)</li>
+          <li>Scenario-by-scenario benchmark findings (7 metric scenarios) (25 min)</li>
+          <li>Security, JVM flags, and production policy (8 min)</li>
+          <li>Rollout checklist and Q&amp;A (4 min)</li>
+        </ol>
+      </section>
+
+      <section>
+        <h3>The core question</h3>
+        <p>Not "Which Dockerfile looks advanced?"</p>
+        <p><strong>Which option improves cost/performance/reliability for this service, on this workload, with acceptable complexity?</strong></p>
+      </section>
+
+      <section>
+        <h3>Decision framework</h3>
         <ul>
-          <li>BuildKit cache mount: build avg <strong>3,410 ms → 622 ms</strong> (5.5× faster)</li>
-          <li>Specialized multi-stage: image <strong>131.54 MB → 100.40 MB</strong>, build <strong>4,135 ms → 645 ms</strong></li>
-          <li><code>jdeps + jlink</code>: image <strong>144.38 MB → 100.40 MB</strong> — 44 MB saved per image push</li>
-          <li>Base image choice: <strong>66.08 MB</strong> (alpine) → <strong>131.37 MB</strong> (temurin-jre) on the same app</li>
-          <li>Native vs JVM: native <strong>308 ms</strong> startup / <strong>55.7 MB</strong> vs JVM <strong>2,025 ms</strong> / <strong>130.5 MB</strong></li>
+          <li><strong>Policy-driven (must enforce):</strong> non-root runtime, digest pinning, readiness health checks</li>
+          <li><strong>Metric-driven:</strong> BuildKit cache, stage layout, jlink/jdeps, AOT cache, JVM flags, base image, native image</li>
+          <li>Policy choices are defaults; metric choices need benchmark evidence</li>
         </ul>
       </section>
 
       <section>
-        <h3>Benchmark method</h3>
+        <h3>Benchmark method (credibility slide)</h3>
         <ul>
-          <li>Scenarios <code>benchmarks/01</code> → <code>benchmarks/10</code>, each isolating one variable</li>
-          <li>Metrics: build avg, startup avg / p95, image MB, success rate</li>
-          <li><strong>Full profile run:</strong> 10 runs per standard scenario, 15 runs for AOT (scenario 05)</li>
-          <li>App under test: production-like Spring Boot 4 app — multiple controllers, services, interceptors</li>
-          <li>Decision rules: metric-driven for performance choices, policy-driven for security/reliability</li>
-          <li>CSVs and recommendations generated from scripts in <code>benchmarks/common/</code></li>
+          <li>Benchmark scenarios: <code>01, 02, 03, 04, 05, 06, 07</code> (metric-driven choices)</li>
+          <li>Metrics: build avg, startup avg/p95, image MB, success rate</li>
+          <li><strong>Full profile:</strong> 10 runs standard scenarios, 15 runs AOT scenario</li>
+          <li>Native-vs-JVM long run evaluated separately (different objective)</li>
         </ul>
       </section>
 
       <section>
-        <h3>What changed in the app under test</h3>
-        <ul>
-          <li>Multiple REST controllers: user, product, info, hello, benchmark</li>
-          <li>Service layer, interceptors, exception handlers, startup listener</li>
-          <li>More realistic bean graph and reflection-heavy Spring startup path</li>
-          <li>Result: these numbers are more relevant to production services than the earlier toy app</li>
-        </ul>
+        <h3>How springdocker operationalizes this</h3>
+        <pre><code data-trim>springdocker doctor --project-root .
+springdocker benchmark generate --project-root . --build-tool maven --java-version 25
+springdocker benchmark run --project-root . --profile full --runner-arg=--skip-native
+springdocker benchmark analyze --project-root . benchmarks/03-custom-jre-jlink/results/raw.csv --format table
+springdocker benchmark analyze --project-root . benchmarks/03-custom-jre-jlink/results/raw.csv --fail-on-success-rate-below 95</code></pre>
+        <p><small>Precedence is deterministic: CLI &gt; .springdocker.toml &gt; defaults.</small></p>
       </section>
 
       <section>
-        <h3>Winners at a glance — full profile results</h3>
+        <h3>Executive summary of full-profile results</h3>
         <table>
           <thead>
-            <tr><th>Scenario</th><th>Winner</th><th>Key numbers</th></tr>
+            <tr><th>Scenario</th><th>Winner</th><th>Why it won</th></tr>
           </thead>
           <tbody>
-            <tr><td>01 · digest pinning</td><td>digest-pinned</td><td>policy — reproducibility &amp; provenance</td></tr>
-            <tr><td>02 · multi-stage layout</td><td>specialized-multi-stage</td><td>100.40 MB vs 131.54 MB · build 645 vs 4,135 ms</td></tr>
-            <tr><td>03 · BuildKit cache</td><td>with-buildkit-cache</td><td>build 622 ms vs 3,410 ms · same image size</td></tr>
-            <tr><td>04 · jlink runtime</td><td>with-jlink-runtime</td><td>100.40 MB vs 144.38 MB · startup 1,423 vs 1,446 ms</td></tr>
-            <tr><td>05 · AOT cache</td><td>with-aot-cache</td><td>1,429 ms vs without 1,509 ms · 80 ms gain</td></tr>
-            <tr><td>06 · non-root hardening</td><td>hardened-non-root</td><td>policy — security non-negotiable</td></tr>
-            <tr><td>07 · readiness healthcheck</td><td>with-readiness-healthcheck</td><td>policy — reliability non-negotiable</td></tr>
-            <tr><td>08 · JVM flags</td><td>defaults-like</td><td>startup 1,370 ms vs tuned 1,468 ms on this host</td></tr>
-            <tr><td>09 · base image</td><td>debian-bookworm-slim</td><td>87.64 MB, 1,450 ms — best size/startup balance</td></tr>
-            <tr><td>10 · native vs JVM</td><td>native (cold-start)</td><td>308 ms / 55.7 MB vs JVM 2,025 ms / 130.5 MB</td></tr>
+            <tr><td>01 Multi-stage structure</td><td>specialized</td><td>100.40 MB vs 131.54 MB, better build cost</td></tr>
+            <tr><td>02 BuildKit cache</td><td>with-cache</td><td>622 ms vs 3,410 ms build</td></tr>
+            <tr><td>03 JLink/JDeps</td><td>with-jlink</td><td>100.40 MB vs 144.38 MB, similar startup</td></tr>
+            <tr><td>04 AOT cache</td><td>with-aot</td><td>1,429 vs 1,509 ms startup, better p95</td></tr>
+            <tr><td>05 JVM flags</td><td>defaults-like (full run)</td><td>host-dependent, benchmark required</td></tr>
+            <tr><td>06 Base image</td><td>debian-bookworm-slim</td><td>best size/startup balance</td></tr>
+            <tr><td>07 Native vs JVM</td><td>workload-dependent</td><td>cold start vs throughput tradeoff</td></tr>
           </tbody>
         </table>
       </section>
 
       <section>
-        <h3>Biggest measurable win: BuildKit cache mount</h3>
-        <pre><code data-trim>RUN --mount=type=cache,sharing=locked,target=/root/.gradle \
+        <section>
+          <h3>01 · Multi-stage structure</h3>
+          <table>
+            <thead>
+              <tr><th>Variant</th><th>Image MB</th><th>Build avg</th><th>Startup avg</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>specialized-multi-stage</td><td><strong>100.40</strong></td><td><strong>645 ms</strong></td><td>1,428 ms</td></tr>
+              <tr><td>simple-two-stage</td><td>131.54</td><td>4,135 ms</td><td><strong>1,240 ms</strong></td></tr>
+            </tbody>
+          </table>
+          <p><small>&darr; Press down for interpretation</small></p>
+        </section>
+        <section>
+          <h3>01 interpretation</h3>
+          <ul>
+            <li>Simple two-stage has slightly better startup, but large build and image penalties</li>
+            <li>Specialized stages reduce registry cost and pull latency for every deploy</li>
+            <li>Prefer specialized structure for production pipelines</li>
+          </ul>
+        </section>
+        <section>
+          <h3>01  Dockerfile example</h3>
+          <pre><code data-trim>FROM eclipse-temurin:25-jdk AS build
+...
+FROM eclipse-temurin:25-jre
+COPY --from=build /app/target/*.jar app.jar</code></pre>
+        </section>
+      </section>
+
+      <section>
+        <section>
+          <h3>02 · BuildKit cache mount</h3>
+          <pre><code data-trim>RUN --mount=type=cache,sharing=locked,target=/root/.gradle \
     ./gradlew --no-daemon dependencies -q</code></pre>
+          <ul>
+            <li>with-cache build avg: <strong>622 ms</strong></li>
+            <li>without-cache build avg: <strong>3,410 ms</strong></li>
+          </ul>
+          <p><small>&darr; Press down for CI example</small></p>
+        </section>
+        <section>
+          <h3>02 CI example</h3>
+          <ul>
+            <li>Enable BuildKit in CI runners and persist cache between jobs</li>
+            <li>Cache key should include lockfiles and JDK major version</li>
+            <li>This is often the highest-ROI Docker optimization</li>
+          </ul>
+        </section>
+        <section>
+          <h3>02  Dockerfile example</h3>
+          <pre><code data-trim>RUN --mount=type=cache,sharing=locked,target=/root/.gradle \
+    ./gradlew --no-daemon dependencies -q</code></pre>
+        </section>
+      </section>
+
+      <section>
+        <section>
+          <h3>03 · JLink + JDeps decision</h3>
+          <ul>
+            <li><code>jdeps</code> computes required modules, <code>jlink</code> creates minimized runtime</li>
+            <li>with-jlink: <strong>100.40 MB</strong>, startup <strong>1,423 ms</strong></li>
+            <li>without-jlink: <strong>144.38 MB</strong>, startup <strong>1,446 ms</strong></li>
+          </ul>
+          <p><small>&darr; Press down for generated flow</small></p>
+        </section>
+        <section>
+          <h3>03 implementation flow</h3>
+          <pre><code data-trim>jdeps --print-module-deps app.jar > modules.txt
+jlink --add-modules "$MODULES" --compress=2 --output /opt/custom-java</code></pre>
+          <p><small>Keep must-have modules explicit for reproducible runtime behavior.</small></p>
+        </section>
+        <section>
+          <h3>03  Dockerfile example</h3>
+          <pre><code data-trim>RUN jdeps --print-module-deps app.jar > modules.txt
+RUN jlink --add-modules "$MODULES" --compress=2 --output /opt/custom-java
+ENV JAVA_HOME=/opt/java</code></pre>
+        </section>
+      </section>
+
+      <section>
+        <section>
+          <h3>04 · JEP 483 AOT cache (15-run scenario)</h3>
+          <ul>
+            <li>with-aot-cache: startup avg <strong>1,429 ms</strong>, p95 <strong>1,462 ms</strong></li>
+            <li>without-aot-cache: startup avg <strong>1,509 ms</strong>, p95 <strong>1,730 ms</strong></li>
+            <li>Improves startup tail for this service profile</li>
+          </ul>
+          <p><small>&darr; Press down for training example</small></p>
+        </section>
+        <section>
+          <h3>04 training run example</h3>
+          <pre><code data-trim>RUN java -XX:AOTCacheOutput=app.aot \
+    -Dspring.context.exit=onRefresh \
+    org.springframework.boot.loader.launch.JarLauncher</code></pre>
+          <p><small>Validate in production-like traffic; avoid broad assumptions from one host.</small></p>
+        </section>
+        <section>
+          <h3>04  Dockerfile example</h3>
+          <pre><code data-trim>RUN java -XX:AOTCacheOutput=app.aot \
+    -Dspring.context.exit=onRefresh \
+    org.springframework.boot.loader.launch.JarLauncher
+ENTRYPOINT ["java","-XX:AOTCache=app.aot","org.springframework.boot.loader.launch.JarLauncher"]</code></pre>
+        </section>
+      </section>
+
+
+      <section>
+        <section>
+          <h3>05 · JVM flags (nuanced)</h3>
+          <ul>
+            <li>Full-profile run favored defaults-like startup on this host</li>
+            <li>Quick runs sometimes favored tuned profile</li>
+            <li><strong>Conclusion:</strong> tune per workload and environment</li>
+          </ul>
+          <p><small>&darr; Press down for baseline flags</small></p>
+        </section>
+        <section>
+          <h3>05 baseline flags (safe defaults)</h3>
+          <pre><code data-trim>ENTRYPOINT ["java",
+  "-XX:MaxRAMPercentage=75",
+  "-XX:+ExitOnOutOfMemoryError",
+  "-Djava.io.tmpdir=/tmp",
+  "-jar","app.jar"]</code></pre>
+          <p><small>Add advanced flags only after repeated benchmark validation.</small></p>
+        </section>
+        <section>
+          <h3>05  Dockerfile example</h3>
+          <pre><code data-trim>ENTRYPOINT ["java",
+  "-XX:MaxRAMPercentage=75",
+  "-XX:+ExitOnOutOfMemoryError",
+  "-Djava.io.tmpdir=/tmp",
+  "-jar","app.jar"]</code></pre>
+        </section>
+      </section>
+
+      <section>
+        <section>
+          <h3>06 · Base image choice</h3>
+          <table>
+            <thead>
+              <tr><th>Variant</th><th>Image MB</th><th>Build avg</th><th>Startup avg</th><th>p95</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>alpine</td><td>66.08</td><td>2,153 ms</td><td>1,519 ms</td><td>1,721 ms</td></tr>
+              <tr><td><strong>debian-bookworm-slim</strong></td><td><strong>87.64</strong></td><td>1,429 ms</td><td><strong>1,450 ms</strong></td><td>1,831 ms</td></tr>
+              <tr><td>ubuntu-noble</td><td>87.92</td><td>1,218 ms</td><td>1,614 ms</td><td>1,752 ms</td></tr>
+              <tr><td>ubi9-minimal</td><td>96.29</td><td>1,036 ms</td><td>1,630 ms</td><td>2,750 ms</td></tr>
+              <tr><td>temurin-jre</td><td>131.37</td><td><strong>945 ms</strong></td><td>1,451 ms</td><td>1,784 ms</td></tr>
+            </tbody>
+          </table>
+          <p><small>&darr; Press down for decision guidance</small></p>
+        </section>
+        <section>
+          <h3>06 decision guidance</h3>
+          <ul>
+            <li>Smallest image is not always best operational choice</li>
+            <li>Balance startup stability, compatibility, and maintenance burden</li>
+            <li>Debian slim was best compromise in this benchmark set</li>
+          </ul>
+        </section>
+        <section>
+          <h3>06  Dockerfile example</h3>
+          <pre><code data-trim>FROM debian:bookworm-slim@sha256:... AS runtime
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*</code></pre>
+        </section>
+      </section>
+
+      <section>
+        <section>
+          <h3>07 · Native vs JVM (long-run mixed workload)</h3>
+          <table>
+            <thead>
+              <tr><th>Metric</th><th>Native</th><th>JVM</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Startup</td><td><strong>308 ms</strong></td><td>2,025 ms</td></tr>
+              <tr><td>Image size</td><td><strong>55.7 MB</strong></td><td>130.5 MB</td></tr>
+              <tr><td>Build time</td><td>~635 s</td><td><strong>~9 s</strong></td></tr>
+              <tr><td>Throughput (mixed CPU-heavy)</td><td>~1.0 req/s</td><td><strong>~27.7 req/s</strong></td></tr>
+            </tbody>
+          </table>
+          <p><small>&darr; Press down for workload-fit rule</small></p>
+        </section>
+        <section>
+          <h3>07 workload-fit rule</h3>
+          <ul>
+            <li>Use native for cold-start and memory-constrained workloads</li>
+            <li>Use JVM for sustained high-throughput services</li>
+            <li>Do not choose native globally without throughput profiling</li>
+          </ul>
+        </section>
+        <section>
+          <h3>07  Dockerfile example</h3>
+          <pre><code data-trim>FROM ghcr.io/graalvm/native-image-community:25 AS build
+RUN ./gradlew --no-daemon nativeCompile -x test
+FROM debian:bookworm-slim
+COPY --from=build /app/build/native/nativeCompile/app /app/app
+ENTRYPOINT ["/app/app"]</code></pre>
+        </section>
+      </section>
+
+      <section>
+        <section>
+          <h3>Policy checks (no benchmark required)</h3>
+          <ul>
+            <li>Digest pinning: supply-chain determinism and provenance</li>
+            <li>Non-root runtime: blast-radius reduction</li>
+            <li>Readiness healthcheck: safer rollout and failure detection</li>
+          </ul>
+          <p><small>&darr; Press down for concrete examples</small></p>
+        </section>
+        <section>
+          <h3>Policy example: digest pinning</h3>
+          <pre><code data-trim>FROM eclipse-temurin:25-jdk@sha256:... AS build
+FROM debian:bookworm-slim@sha256:... AS runtime</code></pre>
+        </section>
+        <section>
+          <h3>Policy example: non-root runtime</h3>
+          <pre><code data-trim>RUN groupadd --system --gid 1001 javauser && \
+    useradd --system --uid 1001 --gid 1001 --no-create-home --shell /usr/sbin/nologin javauser
+RUN install -d -o 1001 -g 1001 -m 755 /app && install -d -o 1001 -g 1001 -m 1777 /tmp
+USER 1001</code></pre>
+        </section>
+        <section>
+          <h3>Policy example: readiness healthcheck</h3>
+          <pre><code data-trim>EXPOSE 8080
+EXPOSE 8081
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s \
+  CMD curl -fsS http://localhost:8081/actuator/health/readiness || exit 1</code></pre>
+        </section>
+      </section>
+
+      <section>
+        <h3>Security deep dive (what is still required)</h3>
         <ul>
-          <li><strong>with cache:</strong> build avg <strong>622 ms</strong></li>
-          <li><strong>without cache:</strong> build avg <strong>3,410 ms</strong> (5.5× slower)</li>
-          <li>Same image size (<strong>100.40 MB</strong>), same success rate (100%)</li>
-          <li>CI impact is huge when cache is shared via buildx cache backend</li>
+          <li>jlink reduces runtime surface but does not patch vulnerable dependencies</li>
+          <li>Add SBOM + vulnerability scanning in CI</li>
+          <li>Use digest-pinned deploy refs and signed artifacts where possible</li>
+          <li>Network-policy protect management endpoints; do not expose by convenience</li>
         </ul>
       </section>
 
       <section>
-        <h3>Multi-stage specialization pays off</h3>
+        <h3>Operational reliability checklist</h3>
         <ul>
-          <li><strong>Specialized multi-stage:</strong> 100.40 MB, build avg 645 ms, startup avg 1,428 ms</li>
-          <li><strong>Simple two-stage:</strong> 131.54 MB, build avg 4,135 ms, startup avg 1,240 ms</li>
-          <li>Startup is slightly faster on simple layout, but image size and build cost are dramatically worse</li>
-          <li>Verdict: specialized multi-stage wins on image size (primary metric) — 31 MB saved</li>
+          <li>Readiness probe path aligned with app health semantics</li>
+          <li>Startup time SLO and p95 tracked per release</li>
+          <li>Benchmark success-rate gate in CI:
+            <code>--fail-on-success-rate-below</code>
+          </li>
+          <li>Fallback plan: keep previous stable Docker profile ready for rollback</li>
         </ul>
       </section>
 
       <section>
-        <h3>Custom jlink runtime is a clear win</h3>
+        <h3>Anti-patterns to call out in the talk</h3>
         <ul>
-          <li><strong>with jlink:</strong> 100.40 MB, build avg 607 ms, startup avg 1,423 ms</li>
-          <li><strong>without jlink:</strong> 144.38 MB, build avg 1,140 ms, startup avg 1,446 ms</li>
-          <li>44 MB image savings — direct reduction in registry storage and pull latency</li>
-          <li>Recommendation: keep <code>jdeps + jlink</code> unless platform constraints block it</li>
+          <li>Picking base image purely by size without runtime behavior checks</li>
+          <li>Copying JVM flags from another service without benchmark validation</li>
+          <li>Treating one quick run as evidence for architectural change</li>
+          <li>Mixing performance and security decisions into one "score"</li>
         </ul>
       </section>
 
       <section>
-        <h3>JEP 483 AOT cache: full-profile result (15 runs)</h3>
-        <ul>
-          <li>Canonical complex-app scenario: <code>05-jep483-aot-cache</code>, 15 runs each</li>
-          <li><code>with-aot-cache</code>: startup avg <strong>1,429 ms</strong>, p95 <strong>1,462 ms</strong></li>
-          <li><code>without-aot-cache</code>: startup avg <strong>1,509 ms</strong>, p95 <strong>1,730 ms</strong></li>
-          <li><code>minimal-app</code> baseline: startup avg <strong>1,423 ms</strong>, image <strong>86.40 MB</strong></li>
-          <li><strong>80 ms startup gain</strong> and 268 ms p95 improvement with AOT cache on this app</li>
-          <li>Conclusion: AOT cache benefit is visible at full-profile sample size — validate in your own environment before standardizing</li>
-        </ul>
+        <h3>Rollout strategy for real teams</h3>
+        <ol>
+          <li>Set policy baseline once (security + operability)</li>
+          <li>Benchmark metric-driven options per service profile</li>
+          <li>Adopt smallest set of changes with clear wins</li>
+          <li>Re-run full profile after major framework/JDK upgrades</li>
+        </ol>
       </section>
 
       <section>
-        <h3>Base image benchmark (09) — full profile</h3>
+        <h3>Decision matrix (final slide before Q&amp;A)</h3>
         <table>
           <thead>
-            <tr><th>Variant</th><th>Image MB</th><th>Build avg</th><th>Startup avg</th><th>p95</th></tr>
+            <tr><th>Decision</th><th>Recommended default</th><th>Override trigger</th></tr>
           </thead>
           <tbody>
-            <tr><td>alpine</td><td>66.08</td><td>2,153 ms</td><td>1,519 ms</td><td>1,721 ms</td></tr>
-            <tr><td><strong>debian-bookworm-slim ✅</strong></td><td><strong>87.64</strong></td><td><strong>1,429 ms</strong></td><td><strong>1,450 ms</strong></td><td>1,831 ms</td></tr>
-            <tr><td>ubuntu-noble</td><td>87.92</td><td>1,218 ms</td><td>1,614 ms</td><td>1,752 ms</td></tr>
-            <tr><td>ubi9-minimal</td><td>96.29</td><td>1,036 ms</td><td>1,630 ms</td><td>2,750 ms</td></tr>
-            <tr><td>eclipse-temurin-jre</td><td>131.37</td><td>945 ms</td><td>1,451 ms</td><td>1,784 ms</td></tr>
-          </tbody>
-        </table>
-        <p><small>debian-bookworm-slim wins: best image size + startup balance. Alpine smallest but high p95 variance and musl caveats.</small></p>
-      </section>
-
-      <section>
-        <h3>Policy decisions vs metric decisions</h3>
-        <ul>
-          <li><strong>Policy-driven:</strong> digest pinning, non-root runtime, readiness healthcheck</li>
-          <li><strong>Metric-driven:</strong> build cache, stage layout, jlink, base image, JVM flags, AOT</li>
-          <li>This distinction prevents unsafe trade-offs for tiny speed gains</li>
-        </ul>
-      </section>
-
-      <section>
-        <h3>Security review: what actually reduces attack surface?</h3>
-        <table>
-          <thead>
-            <tr><th>Choice</th><th>Security value</th><th>Why</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>Digest pinning</td><td><strong>High</strong></td><td>Prevents silent tag retargeting; improves provenance and rollback confidence</td></tr>
-            <tr><td><code>jdeps + jlink</code></td><td><strong>Medium</strong></td><td>Fewer JDK modules, fewer binaries/docs, smaller runtime surface</td></tr>
-            <tr><td>Non-root + read-only FS + dropped caps + seccomp</td><td><strong>High</strong></td><td>Directly constrains post-compromise blast radius</td></tr>
-            <tr><td>Split management port</td><td><strong>Conditional</strong></td><td>Helpful only when combined with network policy / auth</td></tr>
-            <tr><td>AOT cache / JVM tuning flags</td><td><strong>Low</strong></td><td>Mainly performance and operability, not hardening</td></tr>
+            <tr><td>Security baseline</td><td>Always ON</td><td>None for production</td></tr>
+            <tr><td>BuildKit cache</td><td>ON</td><td>Platform unsupported</td></tr>
+            <tr><td>JLink/JDeps</td><td>ON</td><td>Compatibility/tooling blocker</td></tr>
+            <tr><td>AOT cache</td><td>Conditional</td><td>No measurable startup/p95 gain</td></tr>
+            <tr><td>JVM flags tuning</td><td>Baseline only</td><td>Service-specific benchmark evidence</td></tr>
+            <tr><td>Native image</td><td>Selective</td><td>Throughput-heavy workload profile</td></tr>
           </tbody>
         </table>
       </section>
 
       <section>
-        <h3><code>jlink</code> helps security, but only in a limited way</h3>
-        <ul>
-          <li>Security upside: fewer runtime modules means fewer classes, tools, docs and native components shipped</li>
-          <li>Current must-have list is already narrow: <code>java.base</code>, <code>java.logging</code>, <code>java.management</code>, <code>jdk.crypto.ec</code>, etc.</li>
-          <li>Important nuance: <code>jlink</code> reduces surface; it does <strong>not</strong> patch vulnerable app libraries</li>
-          <li>Review kept modules regularly — especially <code>jdk.unsupported</code>, which is often necessary but expands surface</li>
-        </ul>
-      </section>
-
-      <section>
-        <h3>Dockerfile Wizard Profiles</h3>
-        <ul>
-          <li>Generate a fit-for-purpose Dockerfile in one command</li>
-          <li>Profiles map directly to benchmark-backed requirements</li>
-          <li>Explicit CLI flags can override any profile default</li>
-        </ul>
-        <pre><code data-trim>python3 tools/dockerfile_wizard.py --profile balanced --output Dockerfile.generated</code></pre>
-      </section>
-
-      <section>
-        <h3>Profile map</h3>
-        <table>
-          <thead>
-            <tr><th>Profile</th><th>Best for</th><th>Core choices</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>balanced</td><td>default production</td><td>debian + buildkit + jlink</td></tr>
-            <tr><td>smallest</td><td>minimal image size</td><td>alpine + jlink</td></tr>
-            <tr><td>enterprise</td><td>OpenShift / RHEL</td><td>ubi9-minimal + jlink</td></tr>
-            <tr><td>simplest</td><td>lowest maintenance</td><td>eclipse-temurin-jre (no jlink)</td></tr>
-            <tr><td>coldstart</td><td>startup-sensitive workloads</td><td>balanced + measured AOT decision</td></tr>
-            <tr><td>native</td><td>scale-to-zero / low-memory</td><td>GraalVM native image</td></tr>
-          </tbody>
-        </table>
-      </section>
-
-      <section>
-        <h3>Separate long-run benchmark: Native vs JVM</h3>
-        <ul>
-          <li>Mixed workload: <code>/bench/read</code>, <code>/bench/cpu</code>, <code>/hello</code> · 60m duration · 50 VUs</li>
-          <li><strong>Native:</strong> startup <strong>308 ms</strong> · image <strong>55.7 MB</strong> · build <strong>635 s</strong></li>
-          <li><strong>JVM:</strong> startup <strong>2,025 ms</strong> · image <strong>130.5 MB</strong> · build <strong>9 s</strong></li>
-          <li>Native: 6.6× faster cold-start, 57% smaller image, ~3× lower idle CPU (0.11 vs 0.34)</li>
-          <li>JVM: 27.7 req/s throughput vs native 1.0 req/s on this CPU-bound workload mix</li>
-          <li>Use native for cold-start / memory-constrained workloads; JVM for warm high-throughput services</li>
-        </ul>
-      </section>
-
-      <section>
-        <h3>Takeaways by audience</h3>
-        <ul>
-          <li><strong>Dev team:</strong> own Dockerfile performance <em>and</em> patch hygiene; smaller images do not replace CVE remediation</li>
-          <li><strong>SRE team:</strong> enforce non-root, seccomp, read-only FS, and digest-pinned deploy refs</li>
-          <li><strong>Platform team:</strong> provide shared CI build cache, internal-only management access, and regular dependency/image scanning</li>
-          <li><strong>Everyone:</strong> treat AOT/JVM/base-image choices as benchmark decisions, and treat security controls as separate non-negotiables</li>
-        </ul>
-      </section>
-
-      <section>
-        <h3>Re-run everything in your environment</h3>
-        <pre><code data-trim>cd /Path_TO_PROJECT/java-spring-docker
-bash benchmarks/common/run_all_benchmarks.sh --profile quick
-bash benchmarks/common/run_all_benchmarks.sh --profile full
-
-# AOT decision pass only
-RUN_PROFILE=full bash benchmarks/common/run_scenario.sh benchmarks/05-jep483-aot-cache 15</code></pre>
-        <p>All benchmark artifacts and deep dives are in <code>benchmarks/</code>.</p>
+        <h2>Closing statement</h2>
+        <p><strong>Standardize policy. Benchmark performance. Choose deliberately.</strong></p>
+        <p>That is how Dockerfile engineering becomes an organizational capability, not folklore.</p>
       </section>
     </div>
   </div>
@@ -234,9 +386,9 @@ RUN_PROFILE=full bash benchmarks/common/run_scenario.sh benchmarks/05-jep483-aot
     Reveal.initialize({
       hash: true,
       slideNumber: true,
-      transition: "slide"
+      transition: "convex",
+      backgroundTransition: "fade"
     });
   </script>
 </body>
 </html>
-
