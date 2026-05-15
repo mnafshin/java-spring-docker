@@ -105,6 +105,18 @@ class CliIntegrationTests(unittest.TestCase):
         self.assertEqual(payload["build_tool"], "maven")
         self.assertIn("org.springframework.boot:spring-boot-starter-web", payload["direct_dependencies"])
 
+    def test_explain_generated_dockerfile(self) -> None:
+        td, project = self._workspace_from_fixture("maven-only")
+        self.addCleanup(td.cleanup)
+        self.assertEqual(main(["dockerfile", "generate", "--project-root", str(project), "--output", "Dockerfile.generated"]), 0)
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            code = main(["explain", "--project-root", str(project), "Dockerfile.generated", "--format", "json"])
+        self.assertEqual(code, 0)
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(payload["build_tool"], "maven")
+        self.assertIn("jlink runtime", [feature["name"] for feature in payload["features"]])
+
 
 if __name__ == "__main__":
     unittest.main()

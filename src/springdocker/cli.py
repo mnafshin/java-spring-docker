@@ -9,6 +9,7 @@ from .commands import (
     cmd_benchmark_run,
     cmd_dockerfile_generate,
     cmd_doctor,
+    cmd_explain,
     cmd_init,
     cmd_inspect,
 )
@@ -52,6 +53,11 @@ def build_parser() -> argparse.ArgumentParser:
     inspect = sub.add_parser("inspect", help="Inspect project metadata and static compatibility signals")
     add_common_options(inspect)
     inspect.add_argument("--format", choices=["table", "json"], default="table")
+
+    explain = sub.add_parser("explain", help="Explain a springdocker-generated Dockerfile")
+    add_common_options(explain)
+    explain.add_argument("dockerfile", nargs="?", default="Dockerfile.generated")
+    explain.add_argument("--format", choices=["table", "json"], default="table")
 
     dockerfile = sub.add_parser("dockerfile", help="Dockerfile operations")
     dockerfile_sub = dockerfile.add_subparsers(dest="dockerfile_command", required=True)
@@ -149,6 +155,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "inspect":
         return cmd_inspect(project_root=project_root, build_tool=args.build_tool, output_format=args.format)
+
+    if args.command == "explain":
+        return cmd_explain(project_root=project_root, dockerfile_path=args.dockerfile, output_format=args.format)
 
     if args.command == "dockerfile" and args.dockerfile_command == "generate":
         loaded = load_config(project_root / ".springdocker.toml")

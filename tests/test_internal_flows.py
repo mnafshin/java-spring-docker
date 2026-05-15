@@ -11,7 +11,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from springdocker.commands import cmd_benchmark_generate, cmd_benchmark_run, cmd_dockerfile_generate
+from springdocker.commands import cmd_benchmark_generate, cmd_benchmark_run, cmd_dockerfile_generate, cmd_explain
 
 
 class _FakeCompleted:
@@ -80,6 +80,26 @@ class InternalFlowTests(unittest.TestCase):
             self.assertIn("=== Scenario: 01-multi-stage-build-structure", stdout.getvalue())
             self.assertIn("run 1:", stdout.getvalue())
             self.assertIn("Skipping native scenario: 07-native-vs-jvm", stdout.getvalue())
+
+    def test_dockerfile_generate_round_trips_to_explain(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "pom.xml").write_text("<project/>", encoding="utf-8")
+            code = cmd_dockerfile_generate(
+                project_root=root,
+                build_tool=None,
+                output="Dockerfile.generated",
+                java_version=25,
+                must_have_modules_file=None,
+                extra_args=[],
+                use_legacy_scripts=False,
+            )
+            self.assertEqual(code, 0)
+            stdout = StringIO()
+            with redirect_stdout(stdout):
+                explain_code = cmd_explain(root, "Dockerfile.generated", "table")
+            self.assertEqual(explain_code, 0)
+            self.assertIn("jlink runtime", stdout.getvalue())
 
 
 if __name__ == "__main__":

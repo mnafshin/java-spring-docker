@@ -29,6 +29,7 @@ pipx upgrade springdocker
 springdocker init --project-root samples/java-spring-docker --build-tool maven --profile quick
 springdocker doctor --project-root samples/java-spring-docker
 springdocker inspect --project-root samples/java-spring-docker --format json
+springdocker explain --project-root samples/java-spring-docker Dockerfile.generated --format json
 springdocker dockerfile generate --project-root samples/java-spring-docker --output Dockerfile.generated
 springdocker benchmark generate --project-root samples/java-spring-docker --java-version 25
 springdocker benchmark run --project-root samples/java-spring-docker --profile quick --runner-arg --skip-native
@@ -112,3 +113,16 @@ export SPRINGDOCKER_LEGACY_SCRIPTS=1
 - basic runtime compatibility guidance
 
 Use `--format json` for machine-readable output.
+
+## Explain command
+
+`springdocker explain` reads a springdocker-generated Dockerfile and describes the optimizations it contains:
+
+- multi-stage layout
+- BuildKit cache usage
+- jlink runtime stage
+- non-root runtime
+- tuned JVM flags
+- curated must-have modules
+
+Use `--format json` when you want stable structured output.

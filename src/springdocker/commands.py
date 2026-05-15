@@ -6,12 +6,13 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import cast
 
 from .analyze import format_json, format_table, summarize_csv
 from .benchmarks.generate import generate_benchmark_assets
 from .benchmarks.runner import run_benchmarks
 from .config import render_default_config, write_default_config
-from .dockerfile import DockerfileOptions, build_dockerfile
+from .dockerfile import DockerfileOptions, build_dockerfile, explain_dockerfile_text
 from .errors import EXIT_FAILURE, EXIT_OK, EXIT_USAGE, print_error, print_warning
 from .project_detect import inspect_project, inspect_project_details
 
@@ -80,6 +81,50 @@ def cmd_inspect(project_root: Path, build_tool: str | None, output_format: str) 
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
         print(_render_inspect_table(info))
+    return EXIT_OK
+
+
+def _render_explain_table(payload: dict[str, object]) -> str:
+    features = cast(list[dict[str, object]], payload.get("features", []))
+    feature_names = ", ".join(
+        str(feature["name"]) for feature in features if feature.get("enabled") and "name" in feature
+    )
+    notes = cast(list[str], payload.get("notes", []))
+    return "\n".join(
+        [
+            "| Field | Value |",
+            "|---|---|",
+            f"| Source | {payload.get('source', '-')} |",
+            f"| Build tool | {payload.get('build_tool') or '-'} |",
+            f"| Java version | {payload.get('java_version') if payload.get('java_version') is not None else '-'} |",
+            f"| Stage count | {payload.get('stage_count', '-')} |",
+            f"| Features | {feature_names or '-'} |",
+            f"| Summary | {payload.get('summary', '-')} |",
+            f"| Notes | {'; '.join(notes) if isinstance(notes, list) else '-'} |",
+        ]
+    )
+
+
+def cmd_explain(project_root: Path, dockerfile_path: str, output_format: str) -> int:
+    path = Path(dockerfile_path)
+    if not path.is_absolute():
+        path = project_root / path
+    if not path.exists():
+        print_error(f"missing Dockerfile: {path}")
+        return EXIT_USAGE
+
+    try:
+        payload = explain_dockerfile_text(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        print_error(str(exc))
+        return EXIT_USAGE
+
+    payload = dict(payload)
+    payload["path"] = str(path)
+    if output_format == "json":
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(_render_explain_table(payload))
     return EXIT_OK
 
 
