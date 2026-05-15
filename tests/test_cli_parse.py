@@ -37,6 +37,14 @@ class CliParseTests(unittest.TestCase):
         self.assertEqual(args.dockerfile, "Dockerfile.generated")
         self.assertEqual(args.format, "json")
 
+    def test_compare_parse(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(["benchmark", "compare", "results/raw.csv", "--baseline-variant", "with-cache"])
+        self.assertEqual(args.command, "benchmark")
+        self.assertEqual(args.benchmark_command, "compare")
+        self.assertEqual(args.raw_csv, "results/raw.csv")
+        self.assertEqual(args.baseline_variant, "with-cache")
+
     def test_dockerfile_generate_parse_internal_flags(self) -> None:
         parser = build_parser()
         args = parser.parse_args(

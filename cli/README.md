@@ -30,6 +30,7 @@ springdocker init --project-root samples/java-spring-docker --build-tool maven -
 springdocker doctor --project-root samples/java-spring-docker
 springdocker inspect --project-root samples/java-spring-docker --format json
 springdocker explain --project-root samples/java-spring-docker Dockerfile.generated --format json
+springdocker benchmark compare --project-root samples/java-spring-docker benchmarks/03-custom-jre-jlink/results/raw.csv --baseline-variant with-jlink-runtime --format json
 springdocker dockerfile generate --project-root samples/java-spring-docker --output Dockerfile.generated
 springdocker benchmark generate --project-root samples/java-spring-docker --java-version 25
 springdocker benchmark run --project-root samples/java-spring-docker --profile quick --runner-arg --skip-native
@@ -126,3 +127,11 @@ Use `--format json` for machine-readable output.
 - curated must-have modules
 
 Use `--format json` when you want stable structured output.
+
+## Compare command
+
+`springdocker benchmark compare` compares each variant against a required baseline variant and reports deltas.
+
+- `--baseline-variant` selects the variant to compare against.
+- `--scenario` narrows the CSV to one scenario.
+- `--format json` produces machine-readable deltas.

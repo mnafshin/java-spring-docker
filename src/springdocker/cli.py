@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .commands import (
     cmd_benchmark_analyze,
+    cmd_benchmark_compare,
     cmd_benchmark_generate,
     cmd_benchmark_run,
     cmd_dockerfile_generate,
@@ -126,6 +127,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Exit non-zero when any variant success rate is below this percentage (0-100)",
     )
 
+    bench_compare = bench_sub.add_parser("compare", help="Compare benchmark variants against a baseline")
+    add_common_options(bench_compare, with_build_tool=False)
+    bench_compare.add_argument("raw_csv", help="Path to results raw.csv")
+    bench_compare.add_argument("--baseline-variant", required=True, help="Variant name to use as the baseline")
+    bench_compare.add_argument("--scenario", default=None, help="Filter by scenario id")
+    bench_compare.add_argument("--format", choices=["table", "json"], default="table")
+
     return parser
 
 
@@ -223,6 +231,15 @@ def main(argv: list[str] | None = None) -> int:
             variant=args.variant,
             output_path=args.output,
             fail_on_success_rate_below=args.fail_on_success_rate_below,
+        )
+
+    if args.command == "benchmark" and args.benchmark_command == "compare":
+        return cmd_benchmark_compare(
+            project_root=project_root,
+            raw_csv=args.raw_csv,
+            baseline_variant=args.baseline_variant,
+            output_format=args.format,
+            scenario=args.scenario,
         )
 
     parser.error("unknown command")

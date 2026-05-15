@@ -11,6 +11,7 @@ from typing import cast
 from .analyze import format_json, format_table, summarize_csv
 from .benchmarks.generate import generate_benchmark_assets
 from .benchmarks.runner import run_benchmarks
+from .compare import compare_summaries, format_delta_json, format_delta_table
 from .config import render_default_config, write_default_config
 from .dockerfile import DockerfileOptions, build_dockerfile, explain_dockerfile_text
 from .errors import EXIT_FAILURE, EXIT_OK, EXIT_USAGE, print_error, print_warning
@@ -100,9 +101,35 @@ def _render_explain_table(payload: dict[str, object]) -> str:
             f"| Stage count | {payload.get('stage_count', '-')} |",
             f"| Features | {feature_names or '-'} |",
             f"| Summary | {payload.get('summary', '-')} |",
-            f"| Notes | {'; '.join(notes) if isinstance(notes, list) else '-'} |",
+            f"| Notes | {'; '.join(notes) if notes else '-'} |",
         ]
     )
+
+
+def cmd_benchmark_compare(
+    project_root: Path,
+    raw_csv: str,
+    baseline_variant: str,
+    output_format: str,
+    scenario: str | None,
+) -> int:
+    csv_path = Path(raw_csv)
+    if not csv_path.is_absolute():
+        csv_path = project_root / csv_path
+    if not csv_path.exists():
+        print_error(f"missing CSV file: {csv_path}")
+        return EXIT_USAGE
+
+    try:
+        summaries = summarize_csv(csv_path, scenario=scenario)
+        deltas = compare_summaries(baseline_variant, summaries)
+    except ValueError as exc:
+        print_error(str(exc))
+        return EXIT_USAGE
+
+    rendered = format_delta_json(deltas) if output_format == "json" else format_delta_table(deltas)
+    print(rendered)
+    return EXIT_OK
 
 
 def cmd_explain(project_root: Path, dockerfile_path: str, output_format: str) -> int:
