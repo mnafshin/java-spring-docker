@@ -38,6 +38,8 @@ class AnalyzeCommandTests(unittest.TestCase):
                 variant=None,
                 output_path=str(out),
                 fail_on_success_rate_below=None,
+                baseline_path=None,
+                fail_on_regression_above=None,
             )
             self.assertEqual(code, EXIT_OK)
             self.assertTrue(out.exists())
@@ -58,6 +60,8 @@ class AnalyzeCommandTests(unittest.TestCase):
                     variant=None,
                     output_path=None,
                     fail_on_success_rate_below=75.0,
+                    baseline_path=None,
+                    fail_on_regression_above=None,
                 )
             self.assertEqual(code, EXIT_FAILURE)
             self.assertIn("s1/v1", stderr.getvalue())
@@ -77,11 +81,61 @@ class AnalyzeCommandTests(unittest.TestCase):
                     variant=None,
                     output_path=None,
                     fail_on_success_rate_below=150.0,
+                    baseline_path=None,
+                    fail_on_regression_above=None,
                 )
             self.assertEqual(code, EXIT_USAGE)
             self.assertIn("between 0 and 100", stderr.getvalue())
 
+    def test_missing_baseline_is_noop(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            csv_path = self._write_csv(root)
+            stdout = StringIO()
+            stderr = StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                code = cmd_benchmark_analyze(
+                    project_root=root,
+                    raw_csv=str(csv_path),
+                    output_format="table",
+                    scenario=None,
+                    variant=None,
+                    output_path=None,
+                    fail_on_success_rate_below=None,
+                    baseline_path="missing-baseline.json",
+                    fail_on_regression_above=20.0,
+                )
+            self.assertEqual(code, EXIT_OK)
+            self.assertIn("skipping regression check", stderr.getvalue())
+
+    def test_regression_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            csv_path = self._write_csv(root)
+            baseline = root / "baseline.json"
+            baseline.write_text(
+                "[{\"scenario\": \"s1\", \"variant\": \"v1\", \"runs\": 2, \"build_avg_ms\": 100.0, "
+                "\"startup_avg_ms\": 100.0, \"startup_p95_ms\": 110.0, \"image_mb_avg\": 1.0, "
+                "\"success_rate_pct\": 100.0, \"rss_mb_avg\": null, \"cpu_pct_avg\": null, "
+                "\"host\": \"host\", \"docker_version\": \"24\", \"run_profile\": \"quick\"}]",
+                encoding="utf-8",
+            )
+            stderr = StringIO()
+            with redirect_stderr(stderr):
+                code = cmd_benchmark_analyze(
+                    project_root=root,
+                    raw_csv=str(csv_path),
+                    output_format="table",
+                    scenario=None,
+                    variant=None,
+                    output_path=None,
+                    fail_on_success_rate_below=None,
+                    baseline_path=str(baseline),
+                    fail_on_regression_above=20.0,
+                )
+            self.assertEqual(code, EXIT_FAILURE)
+            self.assertIn("regressions above", stderr.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()
-

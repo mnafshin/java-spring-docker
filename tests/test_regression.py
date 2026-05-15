@@ -1,0 +1,37 @@
+from __future__ import annotations
+
+import sys
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from springdocker.analyze import VariantSummary
+from springdocker.regression import detect_regressions, format_regression_json, format_regression_table
+
+
+class RegressionTests(unittest.TestCase):
+    def test_detect_regressions(self) -> None:
+        baseline = [VariantSummary("s1", "v1", 1, 100.0, 200.0, 220.0, 100.0, 100.0)]
+        current = [VariantSummary("s1", "v1", 1, 100.0, 250.0, 260.0, 120.0, 100.0)]
+        violations = detect_regressions(baseline, current, threshold_pct=10.0)
+        self.assertEqual({v.metric for v in violations}, {"startup_avg_ms", "startup_p95_ms", "image_mb_avg"})
+        self.assertIn("startup_avg_ms", format_regression_table(violations))
+        self.assertIn('"metric": "startup_avg_ms"', format_regression_json(violations))
+
+    def test_missing_current_metric_is_regression(self) -> None:
+        baseline = [VariantSummary("s1", "v1", 1, 100.0, 200.0, 220.0, 100.0, 100.0)]
+        current = [VariantSummary("s1", "v1", 1, 100.0, None, None, None, 0.0)]
+        violations = detect_regressions(baseline, current, threshold_pct=10.0)
+        self.assertEqual(len(violations), 3)
+
+    def test_missing_baseline_variant_is_ignored(self) -> None:
+        baseline = [VariantSummary("s1", "v1", 1, 100.0, 200.0, 220.0, 100.0, 100.0)]
+        current = [VariantSummary("s1", "v2", 1, 100.0, 200.0, 220.0, 100.0, 100.0)]
+        violations = detect_regressions(baseline, current, threshold_pct=10.0)
+        self.assertEqual(violations, [])
+
+
+if __name__ == "__main__":
+    unittest.main()

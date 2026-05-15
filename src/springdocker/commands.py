@@ -16,6 +16,13 @@ from .config import render_default_config, write_default_config
 from .dockerfile import DockerfileOptions, build_dockerfile, explain_dockerfile_text
 from .errors import EXIT_FAILURE, EXIT_OK, EXIT_USAGE, print_error, print_warning
 from .project_detect import inspect_project, inspect_project_details
+from .regression import (
+    RegressionViolation,
+    detect_regressions,
+    format_regression_json,
+    format_regression_table,
+    load_summaries,
+)
 
 
 def run_checked(command: list[str], cwd: Path) -> int:
@@ -347,6 +354,8 @@ def cmd_benchmark_analyze(
     variant: str | None,
     output_path: str | None,
     fail_on_success_rate_below: float | None,
+    baseline_path: str | None,
+    fail_on_regression_above: float | None,
 ) -> int:
     csv_path = Path(raw_csv)
     if not csv_path.is_absolute():
@@ -390,6 +399,35 @@ def cmd_benchmark_analyze(
                     f"success_rate below threshold for {summary.scenario}/{summary.variant}: "
                     f"{summary.success_rate_pct:.1f}% < {fail_on_success_rate_below:.1f}%"
                 )
+            return EXIT_FAILURE
+
+    if baseline_path is not None:
+        baseline_file = Path(baseline_path)
+        if not baseline_file.is_absolute():
+            baseline_file = project_root / baseline_file
+        if not baseline_file.exists():
+            print_warning(f"baseline report not found; skipping regression check: {baseline_file}")
+            return EXIT_OK
+        try:
+            baseline_summaries = load_summaries(baseline_file)
+            regression_violations: list[RegressionViolation] = detect_regressions(
+                baseline=baseline_summaries,
+                current=summaries,
+                threshold_pct=fail_on_regression_above or 20.0,
+            )
+        except ValueError as exc:
+            print_error(str(exc))
+            return EXIT_USAGE
+        if regression_violations:
+            rendered_violations = (
+                format_regression_json(regression_violations)
+                if output_format == "json"
+                else format_regression_table(regression_violations)
+            )
+            print(rendered_violations)
+            print_error(
+                f"regressions above {fail_on_regression_above or 20.0:.1f}% detected against {baseline_file}"
+            )
             return EXIT_FAILURE
 
     return EXIT_OK

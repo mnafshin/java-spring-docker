@@ -88,6 +88,20 @@ class CliParseTests(unittest.TestCase):
         self.assertEqual(args.output, "out.json")
         self.assertEqual(args.fail_on_success_rate_below, 99.5)
 
+    def test_benchmark_analyze_regression_parse(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args([
+            "benchmark",
+            "analyze",
+            "results/raw.csv",
+            "--baseline",
+            "baseline.json",
+            "--fail-on-regression-above",
+            "20",
+        ])
+        self.assertEqual(args.baseline, "baseline.json")
+        self.assertEqual(args.fail_on_regression_above, 20.0)
+
 
 if __name__ == "__main__":
     unittest.main()

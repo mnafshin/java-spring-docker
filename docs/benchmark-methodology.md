@@ -61,6 +61,8 @@ There is no separate warmup phase in the current runner; each recorded row is a 
 - average CPU usage
 - success rate
 
+For historical regression tracking, save a baseline summary with `--output baseline.json` and compare later runs with `--baseline baseline.json --fail-on-regression-above 20`.
+
 When a metric is missing, the analyzer leaves the field empty instead of failing the summary.
 
 ## Reproducibility notes
