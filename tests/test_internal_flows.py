@@ -30,6 +30,7 @@ class InternalFlowTests(unittest.TestCase):
                 build_tool=None,
                 output="Dockerfile.generated",
                 java_version=21,
+                must_have_modules_file=None,
                 extra_args=[],
                 use_legacy_scripts=False,
             )

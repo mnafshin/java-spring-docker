@@ -52,6 +52,7 @@ class ConfigTests(unittest.TestCase):
             "dockerfile": {
                 "output": "Dockerfile.ci",
                 "java_version": 21,
+                "must_have_modules_file": "must-have.txt",
                 "legacy_scripts": True,
                 "wizard_args": ["--profile", "balanced"],
             },
@@ -66,6 +67,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(dockerfile.build_tool, "gradle")
         self.assertEqual(dockerfile.output, "Dockerfile.ci")
         self.assertEqual(dockerfile.java_version, 21)
+        self.assertEqual(dockerfile.must_have_modules_file, "must-have.txt")
         self.assertTrue(dockerfile.use_legacy_scripts)
         self.assertEqual(bench_generate.java_version, 21)
         self.assertTrue(bench_generate.use_legacy_scripts)

@@ -27,7 +27,7 @@ RUN MODULES=$(tr ',' '\n' < modules.txt | sort -u | paste -sd, -) && \
     jlink --add-modules "$MODULES" --strip-debug --no-man-pages --no-header-files --compress=2 --output /opt/custom-java
 
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends curl passwd && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends passwd && rm -rf /var/lib/apt/lists/*
 RUN groupadd --system --gid 1001 javauser && \
     useradd --system --uid 1001 --gid 1001 --no-create-home --shell /usr/sbin/nologin javauser
 ENV JAVA_HOME=/opt/java

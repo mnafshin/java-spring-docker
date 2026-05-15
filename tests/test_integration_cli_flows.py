@@ -71,6 +71,26 @@ class CliIntegrationTests(unittest.TestCase):
             )
         self.assertEqual(code, 0)
 
+    def test_dockerfile_generate_reads_must_have_modules_file_from_config(self) -> None:
+        td, project = self._workspace_from_fixture("gradle-only")
+        self.addCleanup(td.cleanup)
+        (project / ".springdocker.toml").write_text(
+            "[project]\n"
+            "build_tool = \"gradle\"\n\n"
+            "[dockerfile]\n"
+            "output = \"Dockerfile.test\"\n"
+            "java_version = 25\n"
+            "must_have_modules_file = \"must-have.txt\"\n"
+            "legacy_scripts = false\n",
+            encoding="utf-8",
+        )
+        (project / "must-have.txt").write_text("jdk.crypto.ec\n# comment\njava.naming\n", encoding="utf-8")
+
+        code = main(["dockerfile", "generate", "--project-root", str(project)])
+        self.assertEqual(code, 0)
+        generated = (project / "Dockerfile.test").read_text(encoding="utf-8")
+        self.assertIn('ARG MUSTHAVE_MODULES="jdk.crypto.ec,java.naming"', generated)
+
 
 if __name__ == "__main__":
     unittest.main()

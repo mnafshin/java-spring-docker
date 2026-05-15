@@ -157,6 +157,7 @@ def main(argv: list[str] | None = None) -> int:
             build_tool=resolved_dockerfile.build_tool,
             output=resolved_dockerfile.output,
             java_version=resolved_dockerfile.java_version,
+            must_have_modules_file=resolved_dockerfile.must_have_modules_file,
             extra_args=resolved_dockerfile.wizard_args,
             use_legacy_scripts=resolved_dockerfile.use_legacy_scripts,
         )

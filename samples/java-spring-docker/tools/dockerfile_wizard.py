@@ -22,7 +22,6 @@ class WizardConfig:
     use_jlink: bool
     use_aot_cache: bool
     non_root: bool
-    healthcheck: bool
     tuned_jvm_flags: bool
     pin_digests: bool
     use_native_image: bool
@@ -31,7 +30,6 @@ class WizardConfig:
     java_version: int = 25        # minimum 25 for JEP 483 AOT Cache support
     app_port: int = 8080
     management_port: int = 8081
-    readiness_path: str = "/actuator/health/readiness"
     source_dir: str = "src"
     jar_glob: str | None = None
     native_bin_path: str | None = None
@@ -55,7 +53,6 @@ PROFILES: dict[str, dict[str, object]] = {
         "use_jlink": True,
         "use_aot_cache": False,
         "non_root": True,
-        "healthcheck": True,
         "tuned_jvm_flags": True,
         "pin_digests": False,
         "build_tool": "gradle",
@@ -67,7 +64,6 @@ PROFILES: dict[str, dict[str, object]] = {
         "use_jlink": True,
         "use_aot_cache": False,
         "non_root": True,
-        "healthcheck": True,
         "tuned_jvm_flags": True,
         "pin_digests": False,
         "build_tool": "gradle",
@@ -79,7 +75,6 @@ PROFILES: dict[str, dict[str, object]] = {
         "use_jlink": True,
         "use_aot_cache": False,
         "non_root": True,
-        "healthcheck": True,
         "tuned_jvm_flags": True,
         "pin_digests": False,
         "build_tool": "gradle",
@@ -91,7 +86,6 @@ PROFILES: dict[str, dict[str, object]] = {
         "use_jlink": False,
         "use_aot_cache": False,
         "non_root": True,
-        "healthcheck": True,
         "tuned_jvm_flags": True,
         "pin_digests": False,
         "build_tool": "gradle",
@@ -103,7 +97,6 @@ PROFILES: dict[str, dict[str, object]] = {
         "use_jlink": True,
         "use_aot_cache": True,
         "non_root": True,
-        "healthcheck": True,
         "tuned_jvm_flags": True,
         "pin_digests": False,
         "use_native_image": False,
@@ -116,7 +109,6 @@ PROFILES: dict[str, dict[str, object]] = {
         "use_jlink": False,
         "use_aot_cache": False,
         "non_root": True,
-        "healthcheck": True,
         "tuned_jvm_flags": False,
         "pin_digests": False,
         "use_native_image": True,
@@ -183,10 +175,6 @@ def _jar_artifact_path(cfg: WizardConfig) -> str:
     if cfg.jar_glob:
         return cfg.jar_glob
     return "target/*.jar" if cfg.build_tool == "maven" else "build/libs/*-SNAPSHOT.jar"
-
-
-def _normalize_readiness_path(path: str) -> str:
-    return path if path.startswith("/") else f"/{path}"
 
 
 def _optional_musthave_modules_csv() -> str:
@@ -261,10 +249,9 @@ def runtime_settings(runtime_base: str, pin_digests: bool, java_version: int = 2
 
 def install_block(runtime_base: str, need_user_tools: bool) -> str:
     if runtime_base == "alpine":
-        pkgs = ["curl"]
-        if need_user_tools:
-            pkgs.append("shadow")
-        return "RUN apk add --no-cache " + " ".join(pkgs)
+        if not need_user_tools:
+            return "RUN true"
+        return "RUN apk add --no-cache shadow"
     if runtime_base == "ubi9-minimal":
         pkgs = []
         if need_user_tools:
@@ -272,9 +259,11 @@ def install_block(runtime_base: str, need_user_tools: bool) -> str:
         if not pkgs:
             return "RUN true"
         return "RUN microdnf install -y --setopt=tsflags=nodocs " + " ".join(pkgs) + " && microdnf clean all"
-    pkgs = ["curl"]
+    pkgs = []
     if need_user_tools:
         pkgs.append("passwd")
+    if not pkgs:
+        return "RUN true"
     return "RUN apt-get update && apt-get install -y --no-install-recommends " + " ".join(pkgs) + " && rm -rf /var/lib/apt/lists/*"
 
 
@@ -290,7 +279,6 @@ def build_dockerfile(cfg: WizardConfig) -> str:
     jlink_jdk = s["jlink_jdk"]
     runtime = s["runtime"]
     jar_path = _jar_artifact_path(cfg)
-    readiness_path = _normalize_readiness_path(cfg.readiness_path)
     musthave_modules_csv = _optional_musthave_modules_csv().replace('"', '\\"')
 
     lines: list[str] = []
@@ -393,14 +381,6 @@ def build_dockerfile(cfg: WizardConfig) -> str:
     if cfg.management_port != cfg.app_port:
         lines.append(f"EXPOSE {cfg.management_port}")
 
-    if cfg.healthcheck:
-        if cfg.runtime_base == "ubi9-minimal":
-            lines.append("HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \\")
-            lines.append(f"  CMD curl -fsS http://localhost:{cfg.management_port}{readiness_path} || wget -qO- http://localhost:{cfg.management_port}{readiness_path} || exit 1")
-        else:
-            lines.append("HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \\")
-            lines.append(f"  CMD curl -fsS http://localhost:{cfg.management_port}{readiness_path} || exit 1")
-
     if cfg.non_root:
         lines.append("USER 1001")
 
@@ -425,7 +405,6 @@ def build_dockerfile(cfg: WizardConfig) -> str:
 def build_native_dockerfile(cfg: WizardConfig) -> str:
     s = runtime_settings(cfg.runtime_base, cfg.pin_digests, cfg.java_version)
     runtime = s["runtime"]
-    readiness_path = _normalize_readiness_path(cfg.readiness_path)
 
     lines: list[str] = []
     lines.append("# syntax=docker/dockerfile:1")
@@ -464,14 +443,6 @@ def build_native_dockerfile(cfg: WizardConfig) -> str:
     if cfg.management_port != cfg.app_port:
         lines.append(f"EXPOSE {cfg.management_port}")
 
-    if cfg.healthcheck:
-        if cfg.runtime_base == "ubi9-minimal":
-            lines.append("HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \\")
-            lines.append(f"  CMD curl -fsS http://localhost:{cfg.management_port}{readiness_path} || wget -qO- http://localhost:{cfg.management_port}{readiness_path} || exit 1")
-        else:
-            lines.append("HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \\")
-            lines.append(f"  CMD curl -fsS http://localhost:{cfg.management_port}{readiness_path} || exit 1")
-
     if cfg.non_root:
         lines.append("USER 1001")
     lines.append('ENTRYPOINT ["/app/app"]')
@@ -494,7 +465,6 @@ def from_args() -> WizardConfig:
     parser.add_argument("--jlink", action=argparse.BooleanOptionalAction, default=None)
     parser.add_argument("--aot-cache", action=argparse.BooleanOptionalAction, default=None)
     parser.add_argument("--non-root", action=argparse.BooleanOptionalAction, default=None)
-    parser.add_argument("--healthcheck", action=argparse.BooleanOptionalAction, default=None)
     parser.add_argument("--tuned-jvm", action=argparse.BooleanOptionalAction, default=None)
     parser.add_argument("--pin-digests", action=argparse.BooleanOptionalAction, default=None)
     parser.add_argument("--native-image", action=argparse.BooleanOptionalAction, default=None)
@@ -502,8 +472,6 @@ def from_args() -> WizardConfig:
                         help="Application port exposed by the container (default: 8080)")
     parser.add_argument("--management-port", type=int, default=8081,
                         help="Management/readiness port exposed by the container (default: 8081)")
-    parser.add_argument("--readiness-path", default="/actuator/health/readiness",
-                        help="Readiness endpoint path for HEALTHCHECK (default: /actuator/health/readiness)")
     parser.add_argument("--source-dir", default="src",
                         help="Relative source directory copied into the build stage (default: src)")
     parser.add_argument("--jar-glob", default=None,
@@ -538,7 +506,6 @@ def from_args() -> WizardConfig:
         use_jlink = ask_bool("Use jlink custom runtime? (Java 25+ recommended)", runtime_base != "eclipse-temurin-jre")
         use_aot_cache = ask_bool("Enable JEP 483 AOT cache training/runtime? (Java 25+)", False)
         non_root = ask_bool("Run container as non-root user?", True)
-        healthcheck = ask_bool("Add Docker HEALTHCHECK against readiness endpoint?", True)
         tuned_jvm_flags = ask_bool("Use tuned JVM container flags?", True)
         pin_digests = ask_bool("Pin known image digests where available?", False)
         use_native_image = ask_bool("Generate native image Dockerfile instead of JVM?", False)
@@ -554,7 +521,6 @@ def from_args() -> WizardConfig:
         use_jlink = defaults["use_jlink"] if args.jlink is None else args.jlink
         use_aot_cache = defaults["use_aot_cache"] if args.aot_cache is None else args.aot_cache
         non_root = defaults["non_root"] if args.non_root is None else args.non_root
-        healthcheck = defaults["healthcheck"] if args.healthcheck is None else args.healthcheck
         tuned_jvm_flags = defaults["tuned_jvm_flags"] if args.tuned_jvm is None else args.tuned_jvm
         pin_digests = defaults["pin_digests"] if args.pin_digests is None else args.pin_digests
         use_native_image = defaults.get("use_native_image", False) if args.native_image is None else args.native_image
@@ -565,7 +531,6 @@ def from_args() -> WizardConfig:
         use_jlink=use_jlink,
         use_aot_cache=use_aot_cache,
         non_root=non_root,
-        healthcheck=healthcheck,
         tuned_jvm_flags=tuned_jvm_flags,
         pin_digests=pin_digests,
         use_native_image=use_native_image,
@@ -574,7 +539,6 @@ def from_args() -> WizardConfig:
         java_version=java_version,
         app_port=args.app_port,
         management_port=args.management_port,
-        readiness_path=args.readiness_path,
         source_dir=args.source_dir,
         jar_glob=args.jar_glob,
         native_bin_path=args.native_bin_path,
@@ -593,4 +557,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

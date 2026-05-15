@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -76,6 +77,7 @@ def cmd_dockerfile_generate(
     build_tool: str | None,
     output: str,
     java_version: int,
+    must_have_modules_file: str | None,
     extra_args: list[str],
     use_legacy_scripts: bool,
 ) -> int:
@@ -102,12 +104,43 @@ def cmd_dockerfile_generate(
         cmd.extend(extra_args)
         return run_checked(cmd, project_root)
 
+    must_have_modules: tuple[str, ...] = ()
+    if must_have_modules_file:
+        modules_path = Path(must_have_modules_file)
+        if not modules_path.is_absolute():
+            modules_path = project_root / modules_path
+        if not modules_path.exists():
+            print_error(f"missing must-have modules file: {modules_path}")
+            return EXIT_USAGE
+        parsed: list[str] = []
+        seen: set[str] = set()
+        for line in modules_path.read_text(encoding="utf-8").splitlines():
+            entry = line.split("#", 1)[0].strip()
+            if not entry:
+                continue
+            for token in [part.strip() for part in entry.split(",")]:
+                if not token:
+                    continue
+                if not re.fullmatch(r"[A-Za-z0-9._-]+", token):
+                    print_error(f"invalid module name in {modules_path}: {token}")
+                    return EXIT_USAGE
+                if token not in seen:
+                    parsed.append(token)
+                    seen.add(token)
+        must_have_modules = tuple(parsed)
+
     destination = Path(output)
     if not destination.is_absolute():
         destination = project_root / destination
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(
-        build_dockerfile(DockerfileOptions(build_tool=info.build_tool, java_version=java_version)),
+        build_dockerfile(
+            DockerfileOptions(
+                build_tool=info.build_tool,
+                java_version=java_version,
+                must_have_modules=must_have_modules,
+            )
+        ),
         encoding="utf-8",
     )
     print(f"wrote dockerfile: {destination}")

@@ -56,6 +56,7 @@ build_tool = "maven"
 [dockerfile]
 output = "Dockerfile.generated"
 java_version = 25
+must_have_modules_file = "must-have.txt"
 legacy_scripts = false
 wizard_args = []
 
@@ -68,6 +69,10 @@ profile = "quick"
 runner_args = ["--skip-native"]
 legacy_scripts = false
 ```
+
+When `dockerfile.must_have_modules_file` is set, springdocker reads modules from that file
+(`must-have.txt` style, one module per line, `#` comments allowed) and injects them into
+the jlink module list for reflection/dynamic-loading edge cases.
 
 Create template config:
 

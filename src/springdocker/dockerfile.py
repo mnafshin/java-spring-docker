@@ -10,8 +10,8 @@ class DockerfileOptions:
     use_buildkit_cache: bool = True
     use_jlink: bool = True
     non_root: bool = True
-    healthcheck: bool = True
     tuned_jvm_flags: bool = True
+    must_have_modules: tuple[str, ...] = ()
 
 
 def _build_setup(build_tool: str) -> tuple[list[str], str, str]:
@@ -73,9 +73,29 @@ def build_dockerfile(options: DockerfileOptions) -> str:
         *setup,
         build_step,
         "",
-        f"FROM eclipse-temurin:{options.java_version}-jre",
-        "RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*",
     ]
+
+    if options.use_jlink:
+        must_have_csv = ",".join(options.must_have_modules).replace('"', '\\"')
+        lines.extend(
+            [
+                f"FROM eclipse-temurin:{options.java_version}-jdk AS jre-builder",
+                "WORKDIR /jre",
+                f"COPY --from=build /app/{jar_path} app.jar",
+                (
+                    f"RUN jdeps --ignore-missing-deps --recursive --multi-release {options.java_version} "
+                    "--print-module-deps app.jar > modules.txt"
+                ),
+                f'ARG MUSTHAVE_MODULES="{must_have_csv}"',
+                "RUN set -eux; \\",
+                "    MODULES=$( (tr ',' '\\n' < modules.txt; printf '%s\\n' \"$MUSTHAVE_MODULES\" | tr ',' '\\n') \\",
+                "      | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -v '^$' | sort -u | paste -sd, -); \\",
+                "    jlink --add-modules \"$MODULES\" --strip-debug --no-man-pages --no-header-files --compress=2 --output /opt/java",
+                "",
+            ]
+        )
+
+    lines.append(f"FROM eclipse-temurin:{options.java_version}-jre")
     if options.non_root:
         lines.extend(
             [
@@ -88,18 +108,19 @@ def build_dockerfile(options: DockerfileOptions) -> str:
 
     lines.extend(
         [
-        "WORKDIR /app",
-        f"COPY --from=build {'--chown=1001:1001 ' if options.non_root else ''}/app/{jar_path} app.jar",
-        "EXPOSE 8080",
-        "EXPOSE 8081",
+            "WORKDIR /app",
+            f"COPY --from=build {'--chown=1001:1001 ' if options.non_root else ''}/app/{jar_path} app.jar",
+            "EXPOSE 8080",
+            "EXPOSE 8081",
         ]
     )
 
-    if options.healthcheck:
+    if options.use_jlink:
         lines.extend(
             [
-                "HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \\",
-                "  CMD curl -fsS http://localhost:8081/actuator/health/readiness || exit 1",
+                "COPY --from=jre-builder /opt/java /opt/java",
+                "ENV JAVA_HOME=/opt/java",
+                'ENV PATH="${JAVA_HOME}/bin:${PATH}"',
             ]
         )
 

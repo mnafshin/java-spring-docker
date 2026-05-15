@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>From Dockerfile Guesswork to Proof</title>
+  <title>Dockerfile Decisions with Evidence</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" id="theme">
   <link rel="stylesheet" href="assets/custom.css">
@@ -12,8 +12,8 @@
   <div class="reveal">
     <div class="slides">
       <section>
-        <h1>From Dockerfile Guesswork to Proof</h1>
-        <h3>45-minute decision playbook for Spring Boot container engineering</h3>
+        <h1>Dockerfile Decisions with Evidence</h1>
+        <h3>45-minute engineering briefing for Spring Boot container delivery</h3>
         <p><strong>Benchmark-driven choices</strong> + <strong>security non-negotiables</strong></p>
       </section>
 
@@ -29,21 +29,21 @@
 
       <section>
         <h3>The core question</h3>
-        <p>Not "Which Dockerfile looks advanced?"</p>
+        <p>Not "Which Dockerfile looks more sophisticated?"</p>
         <p><strong>Which option improves cost/performance/reliability for this service, on this workload, with acceptable complexity?</strong></p>
       </section>
 
       <section>
         <h3>Decision framework</h3>
         <ul>
-          <li><strong>Policy-driven (must enforce):</strong> non-root runtime, digest pinning, readiness health checks</li>
+          <li><strong>Policy-driven (must enforce):</strong> non-root runtime and digest pinning</li>
           <li><strong>Metric-driven:</strong> BuildKit cache, stage layout, jlink/jdeps, AOT cache, JVM flags, base image, native image</li>
           <li>Policy choices are defaults; metric choices need benchmark evidence</li>
         </ul>
       </section>
 
       <section>
-        <h3>Benchmark method (credibility slide)</h3>
+        <h3>Benchmark methodology</h3>
         <ul>
           <li>Benchmark scenarios: <code>01, 02, 03, 04, 05, 06, 07</code> (metric-driven choices)</li>
           <li>Metrics: build avg, startup avg/p95, image MB, success rate</li>
@@ -53,12 +53,15 @@
       </section>
 
       <section>
-        <h3>How springdocker operationalizes this</h3>
+        <h3>Execution workflow with springdocker</h3>
         <pre><code data-trim>springdocker doctor --project-root .
 springdocker benchmark generate --project-root . --build-tool maven --java-version 25
 springdocker benchmark run --project-root . --profile full --runner-arg=--skip-native
 springdocker benchmark analyze --project-root . benchmarks/03-custom-jre-jlink/results/raw.csv --format table
 springdocker benchmark analyze --project-root . benchmarks/03-custom-jre-jlink/results/raw.csv --fail-on-success-rate-below 95</code></pre>
+        <pre><code data-trim>[dockerfile]
+java_version = 25
+must_have_modules_file = "must-have.txt"</code></pre>
         <p><small>Precedence is deterministic: CLI &gt; .springdocker.toml &gt; defaults.</small></p>
       </section>
 
@@ -103,7 +106,7 @@ springdocker benchmark analyze --project-root . benchmarks/03-custom-jre-jlink/r
           </ul>
         </section>
         <section>
-          <h3>01  Dockerfile example</h3>
+          <h3>01 Dockerfile example</h3>
           <pre><code data-trim>FROM eclipse-temurin:25-jdk AS build
 ...
 FROM eclipse-temurin:25-jre
@@ -131,7 +134,7 @@ COPY --from=build /app/target/*.jar app.jar</code></pre>
           </ul>
         </section>
         <section>
-          <h3>02  Dockerfile example</h3>
+          <h3>02 Dockerfile example</h3>
           <pre><code data-trim>RUN --mount=type=cache,sharing=locked,target=/root/.gradle \
     ./gradlew --no-daemon dependencies -q</code></pre>
         </section>
@@ -142,6 +145,7 @@ COPY --from=build /app/target/*.jar app.jar</code></pre>
           <h3>03 · JLink + JDeps decision</h3>
           <ul>
             <li><code>jdeps</code> computes required modules, <code>jlink</code> creates minimized runtime</li>
+            <li>For reflection/proxy/dynamic loading, merge a curated <code>must-have.txt</code> module list</li>
             <li>with-jlink: <strong>100.40 MB</strong>, startup <strong>1,423 ms</strong></li>
             <li>without-jlink: <strong>144.38 MB</strong>, startup <strong>1,446 ms</strong></li>
           </ul>
@@ -149,14 +153,20 @@ COPY --from=build /app/target/*.jar app.jar</code></pre>
         </section>
         <section>
           <h3>03 implementation flow</h3>
-          <pre><code data-trim>jdeps --print-module-deps app.jar > modules.txt
+          <pre><code data-trim># from must-have.txt (reflection/proxy/manual additions)
+# jdk.crypto.ec
+# java.naming
+jdeps --print-module-deps app.jar > modules.txt
+MODULES="$(cat modules.txt),$(paste -sd, must-have.txt)"
 jlink --add-modules "$MODULES" --compress=2 --output /opt/custom-java</code></pre>
-          <p><small>Keep must-have modules explicit for reproducible runtime behavior.</small></p>
+          <p><small>Use must-have.txt for modules jdeps cannot infer (reflection, dynamic loading, proxies).</small></p>
         </section>
         <section>
-          <h3>03  Dockerfile example</h3>
-          <pre><code data-trim>RUN jdeps --print-module-deps app.jar > modules.txt
-RUN jlink --add-modules "$MODULES" --compress=2 --output /opt/custom-java
+          <h3>03 Dockerfile example</h3>
+          <pre><code data-trim>ARG MUSTHAVE_MODULES="jdk.crypto.ec,java.naming" # from dockerfile.must_have_modules_file
+RUN jdeps --print-module-deps app.jar > modules.txt
+RUN MODULES="$(cat modules.txt),${MUSTHAVE_MODULES}" && \
+    jlink --add-modules "$MODULES" --compress=2 --output /opt/custom-java
 ENV JAVA_HOME=/opt/java</code></pre>
         </section>
       </section>
@@ -179,7 +189,7 @@ ENV JAVA_HOME=/opt/java</code></pre>
           <p><small>Validate in production-like traffic; avoid broad assumptions from one host.</small></p>
         </section>
         <section>
-          <h3>04  Dockerfile example</h3>
+          <h3>04 Dockerfile example</h3>
           <pre><code data-trim>RUN java -XX:AOTCacheOutput=app.aot \
     -Dspring.context.exit=onRefresh \
     org.springframework.boot.loader.launch.JarLauncher
@@ -190,7 +200,7 @@ ENTRYPOINT ["java","-XX:AOTCache=app.aot","org.springframework.boot.loader.launc
 
       <section>
         <section>
-          <h3>05 · JVM flags (nuanced)</h3>
+          <h3>05 · JVM flags (context-dependent)</h3>
           <ul>
             <li>Full-profile run favored defaults-like startup on this host</li>
             <li>Quick runs sometimes favored tuned profile</li>
@@ -208,7 +218,7 @@ ENTRYPOINT ["java","-XX:AOTCache=app.aot","org.springframework.boot.loader.launc
           <p><small>Add advanced flags only after repeated benchmark validation.</small></p>
         </section>
         <section>
-          <h3>05  Dockerfile example</h3>
+          <h3>05 Dockerfile example</h3>
           <pre><code data-trim>ENTRYPOINT ["java",
   "-XX:MaxRAMPercentage=75",
   "-XX:+ExitOnOutOfMemoryError",
@@ -243,9 +253,9 @@ ENTRYPOINT ["java","-XX:AOTCache=app.aot","org.springframework.boot.loader.launc
           </ul>
         </section>
         <section>
-          <h3>06  Dockerfile example</h3>
+          <h3>06 Dockerfile example</h3>
           <pre><code data-trim>FROM debian:bookworm-slim@sha256:... AS runtime
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*</code></pre>
+RUN apt-get update && apt-get install -y --no-install-recommends passwd && rm -rf /var/lib/apt/lists/*</code></pre>
         </section>
       </section>
 
@@ -274,12 +284,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf 
           </ul>
         </section>
         <section>
-          <h3>07  Dockerfile example</h3>
+          <h3>07 native Dockerfile sample</h3>
           <pre><code data-trim>FROM ghcr.io/graalvm/native-image-community:25 AS build
-RUN ./gradlew --no-daemon nativeCompile -x test
-FROM debian:bookworm-slim
-COPY --from=build /app/build/native/nativeCompile/app /app/app
+WORKDIR /app
+COPY gradlew settings.gradle.kts build.gradle.kts ./
+COPY gradle ./gradle
+COPY src ./src
+RUN chmod +x gradlew && ./gradlew --no-daemon nativeCompile -x test
+
+FROM debian:bookworm-slim@sha256:...
+RUN apt-get update && apt-get install -y --no-install-recommends passwd && rm -rf /var/lib/apt/lists/*
+RUN groupadd --system --gid 1001 appuser && useradd --system --uid 1001 --gid 1001 --no-create-home --shell /usr/sbin/nologin appuser
+RUN install -d -o 1001 -g 1001 -m 755 /app && install -d -o 1001 -g 1001 -m 1777 /tmp
+WORKDIR /app
+COPY --from=build --chown=1001:1001 /app/build/native/nativeCompile/app /app/app
+USER 1001
 ENTRYPOINT ["/app/app"]</code></pre>
+          <p><small>&darr; Full production-ready native Dockerfile is on a dedicated slide later.</small></p>
         </section>
       </section>
 
@@ -289,7 +310,8 @@ ENTRYPOINT ["/app/app"]</code></pre>
           <ul>
             <li>Digest pinning: supply-chain determinism and provenance</li>
             <li>Non-root runtime: blast-radius reduction</li>
-            <li>Readiness healthcheck: safer rollout and failure detection</li>
+            <li>No curl-based Dockerfile healthcheck; keep readiness probing at orchestrator level</li>
+            <li>Readiness should be enforced at orchestrator level (e.g., Kubernetes probes)</li>
           </ul>
           <p><small>&darr; Press down for concrete examples</small></p>
         </section>
@@ -306,12 +328,103 @@ RUN install -d -o 1001 -g 1001 -m 755 /app && install -d -o 1001 -g 1001 -m 1777
 USER 1001</code></pre>
         </section>
         <section>
-          <h3>Policy example: readiness healthcheck</h3>
-          <pre><code data-trim>EXPOSE 8080
-EXPOSE 8081
-HEALTHCHECK --interval=30s --timeout=3s --start-period=60s \
-  CMD curl -fsS http://localhost:8081/actuator/health/readiness || exit 1</code></pre>
+          <h3>Policy example: Kubernetes readiness probe</h3>
+          <pre><code data-trim>readinessProbe:
+  httpGet:
+    path: /actuator/health/readiness
+    port: 8081
+  initialDelaySeconds: 10
+  periodSeconds: 5</code></pre>
         </section>
+      </section>
+
+      <section>
+        <h3>Complete native Dockerfile reference</h3>
+        <pre class="code-compact"><code data-trim># syntax=docker/dockerfile:1.7
+FROM ghcr.io/graalvm/native-image-community:25 AS build
+WORKDIR /app
+
+COPY gradlew settings.gradle.kts build.gradle.kts ./
+COPY gradle ./gradle
+RUN chmod +x gradlew
+
+COPY src ./src
+RUN --mount=type=cache,sharing=locked,target=/root/.gradle \
+    ./gradlew --no-daemon nativeCompile -x test
+
+FROM debian:bookworm-slim@sha256:...
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates passwd \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd --system --gid 1001 appuser && \
+    useradd --system --uid 1001 --gid 1001 --no-create-home --shell /usr/sbin/nologin appuser
+RUN install -d -o 1001 -g 1001 -m 755 /app && \
+    install -d -o 1001 -g 1001 -m 1777 /tmp
+
+WORKDIR /app
+COPY --from=build --chown=1001:1001 /app/build/native/nativeCompile/app /app/app
+
+EXPOSE 8080
+EXPOSE 8081
+USER 1001
+ENTRYPOINT ["/app/app"]</code></pre>
+        <ol class="progressive-list">
+          <li class="fragment fade-up">Block 1: Build stage and native compile</li>
+          <li class="fragment fade-up">Block 2: Runtime base and minimal packages</li>
+          <li class="fragment fade-up">Block 3: Hardening (non-root and writable paths)</li>
+          <li class="fragment fade-up">Block 4: Runtime contract (ports and entrypoint)</li>
+        </ol>
+        <button type="button" class="progressive-next">Next block</button>
+      </section>
+
+      <section>
+        <h3>Complete JVM Dockerfile reference (springdocker)</h3>
+        <pre class="code-compact"><code data-trim># syntax=docker/dockerfile:1.7
+FROM eclipse-temurin:25-jdk AS build
+WORKDIR /app
+
+COPY mvnw pom.xml ./
+COPY .mvn ./.mvn
+RUN chmod +x mvnw
+COPY src ./src
+RUN --mount=type=cache,sharing=locked,target=/root/.m2 \
+    ./mvnw -B -q package -DskipTests
+
+FROM eclipse-temurin:25-jdk AS jre-builder
+WORKDIR /jre
+COPY --from=build /app/target/*.jar app.jar
+RUN jdeps --ignore-missing-deps --recursive --multi-release 25 --print-module-deps app.jar > modules.txt
+ARG MUSTHAVE_MODULES="jdk.crypto.ec,java.naming" # from dockerfile.must_have_modules_file
+RUN set -eux; \
+    MODULES=$( (tr ',' '\n' < modules.txt; printf '%s\n' "$MUSTHAVE_MODULES" | tr ',' '\n') \
+      | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -v '^$' | sort -u | paste -sd, -); \
+    jlink --add-modules "$MODULES" --strip-debug --no-man-pages --no-header-files --compress=2 --output /opt/java
+
+FROM debian:bookworm-slim@sha256:... AS aot-trainer
+RUN apt-get update && apt-get install -y --no-install-recommends passwd && rm -rf /var/lib/apt/lists/*
+COPY --from=jre-builder /opt/java /opt/java
+ENV JAVA_HOME=/opt/java
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
+RUN java -XX:AOTCacheOutput=app.aot -Dspring.context.exit=onRefresh -jar app.jar && test -f app.aot
+
+FROM debian:bookworm-slim@sha256:...
+RUN apt-get update && apt-get install -y --no-install-recommends passwd && rm -rf /var/lib/apt/lists/*
+RUN groupadd --system --gid 1001 javauser && useradd --system --uid 1001 --gid 1001 --no-create-home --shell /usr/sbin/nologin javauser
+RUN install -d -o 1001 -g 1001 -m 755 /app && install -d -o 1001 -g 1001 -m 1777 /tmp
+WORKDIR /app
+COPY --from=build --chown=1001:1001 /app/target/*.jar app.jar
+COPY --from=jre-builder /opt/java /opt/java
+COPY --from=aot-trainer --chown=1001:1001 /app/app.aot app.aot
+ENV JAVA_HOME=/opt/java
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+EXPOSE 8080
+EXPOSE 8081
+USER 1001
+ENTRYPOINT ["java","-XX:AOTCache=app.aot","-XX:MaxRAMPercentage=75","-XX:+ExitOnOutOfMemoryError","-Djava.io.tmpdir=/tmp","-jar","app.jar"]</code></pre>
+        <p><small>JVM reference: BuildKit + JLink/JDeps + must-have modules + AOT cache + tuned JVM flags on debian-bookworm-slim. Skip JLink only for compatibility/tooling blockers.</small></p>
       </section>
 
       <section>
@@ -337,7 +450,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=60s \
       </section>
 
       <section>
-        <h3>Anti-patterns to call out in the talk</h3>
+        <h3>Common decision anti-patterns</h3>
         <ul>
           <li>Picking base image purely by size without runtime behavior checks</li>
           <li>Copying JVM flags from another service without benchmark validation</li>
@@ -376,19 +489,70 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=60s \
       <section>
         <h2>Closing statement</h2>
         <p><strong>Standardize policy. Benchmark performance. Choose deliberately.</strong></p>
-        <p>That is how Dockerfile engineering becomes an organizational capability, not folklore.</p>
+        <p>That is how Dockerfile engineering becomes a repeatable organizational capability.</p>
       </section>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
   <script>
-    Reveal.initialize({
-      hash: true,
-      slideNumber: true,
-      transition: "convex",
-      backgroundTransition: "fade"
-    });
+    const setupProgressiveLists = () => {
+      document.querySelectorAll(".progressive-list").forEach((list) => {
+        const items = Array.from(list.querySelectorAll("li"));
+        if (!items.length) return;
+        let visible = 0;
+        items.forEach((item, idx) => {
+          if (idx > 0) {
+            item.style.display = "none";
+          }
+        });
+        const revealNext = () => {
+          if (visible + 1 < items.length) {
+            visible += 1;
+            const el = items[visible];
+            el.style.display = "list-item";
+            el.classList.add("progressive-pop");
+            window.setTimeout(() => el.classList.remove("progressive-pop"), 240);
+          }
+        };
+        list.addEventListener("click", revealNext);
+        const btn = list.parentElement?.querySelector(".progressive-next");
+        if (btn) {
+          btn.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            revealNext();
+          });
+        }
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "ArrowRight" && event.key !== "ArrowDown" && event.key !== " ") {
+          return;
+        }
+        const activeSlide = document.querySelector(".slides section.present");
+        const list = activeSlide?.querySelector?.(".progressive-list");
+        const btn = list?.parentElement?.querySelector?.(".progressive-next");
+        if (btn instanceof HTMLButtonElement) {
+          btn.click();
+        }
+      });
+    };
+
+    if (window.Reveal && typeof window.Reveal.initialize === "function") {
+      Reveal.initialize({
+        hash: true,
+        fragments: true,
+        width: 1280,
+        height: 720,
+        margin: 0.04,
+        minScale: 0.2,
+        maxScale: 1.25,
+        slideNumber: true,
+        transition: "fade",
+        backgroundTransition: "fade"
+      });
+    }
+    setupProgressiveLists();
   </script>
 </body>
 </html>

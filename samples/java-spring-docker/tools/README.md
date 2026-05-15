@@ -10,7 +10,6 @@ This wizard helps you generate a fit-for-purpose Dockerfile without manually edi
 ## Policy defaults you should usually keep
 
 - non-root runtime user
-- readiness healthcheck
 - digest pinning (where supported in your process)
 
 ## Interactive usage
@@ -29,7 +28,6 @@ python3 tools/dockerfile_wizard.py \
   --buildkit-cache \
   --jlink \
   --non-root \
-  --healthcheck \
   --tuned-jvm \
   --output Dockerfile.generated
 ```
@@ -40,8 +38,7 @@ python3 tools/dockerfile_wizard.py \
 - `--jar-glob`: built JAR path glob in builder image (defaults: Gradle `build/libs/*-SNAPSHOT.jar`, Maven `target/*.jar`)
 - `--native-bin-path`: native executable path in builder image (overrides build-tool default)
 - `--app-port`: app container port to expose (default `8080`)
-- `--management-port`: readiness/management port to expose and probe (default `8081`)
-- `--readiness-path`: readiness endpoint path used by `HEALTHCHECK` (default `/actuator/health/readiness`)
+- `--management-port`: optional management port to expose (default `8081`)
 
 Example:
 
@@ -54,7 +51,6 @@ python3 tools/dockerfile_wizard.py \
   --jar-glob 'target/*.jar' \
   --app-port 9000 \
   --management-port 9001 \
-  --readiness-path /readyz \
   --output Dockerfile.generated
 ```
 
@@ -101,7 +97,7 @@ python3 tools/dockerfile_wizard.py --profile balanced --native-image --output Do
 
 ## Suggested profiles
 
-- **Balanced production**: `debian-bookworm-slim + buildkit-cache + jlink + non-root + healthcheck + tuned-jvm`
+- **Balanced production**: `debian-bookworm-slim + buildkit-cache + jlink + non-root + tuned-jvm`
 - **Smallest image**: `alpine + jlink` (verify musl compatibility in your environment)
 - **Enterprise RHEL/OpenShift**: `ubi9-minimal + jlink`
 - **Simplest maintenance**: `eclipse-temurin-jre` (no jlink)
@@ -112,4 +108,3 @@ python3 tools/dockerfile_wizard.py --profile balanced --native-image --output Do
 cd /path/to/your-java25-project
 docker build -f Dockerfile.generated -t app:generated .
 ```
-

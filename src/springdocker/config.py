@@ -20,6 +20,7 @@ class DockerfileGenerateConfig:
     build_tool: str | None
     output: str
     java_version: int
+    must_have_modules_file: str | None
     wizard_args: list[str]
     use_legacy_scripts: bool
 
@@ -53,6 +54,7 @@ def render_default_config(build_tool: str, profile: str = "quick") -> str:
         "[dockerfile]\n"
         'output = "Dockerfile.generated"\n'
         "java_version = 25\n"
+        '# must_have_modules_file = "must-have.txt"\n'
         "legacy_scripts = false\n"
         "wizard_args = []\n\n"
         "[benchmark.generate]\n"
@@ -131,7 +133,11 @@ def _validate_schema(data: dict[str, Any]) -> None:
     for section_name, section, allowed_keys in [
         ("project", project, {"build_tool"}),
         ("doctor", doctor, {"build_tool"}),
-        ("dockerfile", dockerfile, {"output", "java_version", "legacy_scripts", "wizard_args"}),
+        (
+            "dockerfile",
+            dockerfile,
+            {"output", "java_version", "must_have_modules_file", "legacy_scripts", "wizard_args"},
+        ),
         ("benchmark", benchmark, {"run", "generate", "profile", "runner_args"}),
         ("benchmark.run", benchmark_run, {"profile", "runner_args", "legacy_scripts"}),
         ("benchmark.generate", benchmark_generate, {"java_version", "legacy_scripts"}),
@@ -144,6 +150,7 @@ def _validate_schema(data: dict[str, Any]) -> None:
     _expect_optional_str(doctor.get("build_tool"), "doctor.build_tool")
     _expect_optional_str(dockerfile.get("output"), "dockerfile.output")
     _expect_optional_int(dockerfile.get("java_version"), "dockerfile.java_version")
+    _expect_optional_str(dockerfile.get("must_have_modules_file"), "dockerfile.must_have_modules_file")
     _expect_optional_bool(dockerfile.get("legacy_scripts"), "dockerfile.legacy_scripts")
     _expect_optional_str_list(dockerfile.get("wizard_args"), "dockerfile.wizard_args")
     _expect_optional_str(benchmark_run.get("profile"), "benchmark.run.profile")
@@ -200,6 +207,10 @@ def resolve_dockerfile_generate_config(
     build_tool = _resolve_build_tool(cli_build_tool, loaded_config, "project")
     output = cli_output or _expect_optional_str(dockerfile.get("output"), "dockerfile.output") or "Dockerfile.generated"
     java_version = cli_java_version or _expect_optional_int(dockerfile.get("java_version"), "dockerfile.java_version") or 25
+    must_have_modules_file = _expect_optional_str(
+        dockerfile.get("must_have_modules_file"),
+        "dockerfile.must_have_modules_file",
+    )
 
     if cli_wizard_args is not None:
         wizard_args = cli_wizard_args
@@ -215,6 +226,7 @@ def resolve_dockerfile_generate_config(
         build_tool=build_tool,
         output=output,
         java_version=java_version,
+        must_have_modules_file=must_have_modules_file,
         wizard_args=wizard_args,
         use_legacy_scripts=use_legacy,
     )
