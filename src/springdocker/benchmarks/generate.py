@@ -60,8 +60,16 @@ def default_scenarios(build_tool: str, java_version: int) -> list[ScenarioDefini
         ScenarioDefinition(
             id="06-base-image-choice",
             variants=(
-                ("temurin-jre", base),
-                ("minimal-runtime", DockerfileOptions(build_tool=build_tool, java_version=java_version, use_buildkit_cache=False, tuned_jvm_flags=False)),
+                ("temurin-jre", DockerfileOptions(build_tool=build_tool, java_version=java_version, use_jlink=False)),
+                (
+                    "distroless-nonroot",
+                    DockerfileOptions(
+                        build_tool=build_tool,
+                        java_version=java_version,
+                        use_jlink=False,
+                        runtime_image="distroless",
+                    ),
+                ),
             ),
         ),
         ScenarioDefinition(

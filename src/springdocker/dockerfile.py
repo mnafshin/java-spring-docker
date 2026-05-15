@@ -13,6 +13,7 @@ class DockerfileOptions:
     non_root: bool = True
     tuned_jvm_flags: bool = True
     must_have_modules: tuple[str, ...] = ()
+    runtime_image: str = "temurin"
 
 
 def _build_setup(build_tool: str) -> tuple[list[str], str, str]:
@@ -44,6 +45,8 @@ def build_dockerfile(options: DockerfileOptions) -> str:
         raise ValueError("build tool must be 'maven' or 'gradle'")
     if options.java_version < 17:
         raise ValueError("java version must be >= 17")
+    if options.runtime_image not in {"temurin", "distroless"}:
+        raise ValueError("runtime_image must be 'temurin' or 'distroless'")
 
     setup, build_cmd, jar_path = _build_setup(options.build_tool)
     build_step = (
@@ -96,27 +99,53 @@ def build_dockerfile(options: DockerfileOptions) -> str:
             ]
         )
 
-    lines.append(f"FROM eclipse-temurin:{options.java_version}-jre")
-    if options.non_root:
+    if options.runtime_image == "distroless":
+        runtime_base = (
+            "gcr.io/distroless/base-debian12:nonroot"
+            if options.use_jlink
+            else f"gcr.io/distroless/java{options.java_version}-debian12:nonroot"
+        )
+        lines.append(f"FROM {runtime_base}")
         lines.extend(
             [
-                "RUN groupadd --system --gid 1001 javauser && useradd --system --uid 1001 --gid 1001 --no-create-home --shell /usr/sbin/nologin javauser",
-                "RUN install -d -o 1001 -g 1001 -m 755 /app && install -d -o 1001 -g 1001 -m 1777 /tmp",
+                "WORKDIR /app",
+                f"COPY --from=build /app/{jar_path} app.jar",
+                "EXPOSE 8080",
+                "EXPOSE 8081",
             ]
         )
+        if options.use_jlink:
+            lines.extend(
+                [
+                    "COPY --from=jre-builder /opt/java /opt/java",
+                    "ENV JAVA_HOME=/opt/java",
+                    'ENV PATH="${JAVA_HOME}/bin:${PATH}"',
+                ]
+            )
+        if options.non_root:
+            lines.append("USER nonroot")
     else:
-        lines.append("RUN install -d -m 755 /app && install -d -m 1777 /tmp")
+        lines.append(f"FROM eclipse-temurin:{options.java_version}-jre")
+        if options.non_root:
+            lines.extend(
+                [
+                    "RUN groupadd --system --gid 1001 javauser && useradd --system --uid 1001 --gid 1001 --no-create-home --shell /usr/sbin/nologin javauser",
+                    "RUN install -d -o 1001 -g 1001 -m 755 /app && install -d -o 1001 -g 1001 -m 1777 /tmp",
+                ]
+            )
+        else:
+            lines.append("RUN install -d -m 755 /app && install -d -m 1777 /tmp")
 
-    lines.extend(
-        [
-            "WORKDIR /app",
-            f"COPY --from=build {'--chown=1001:1001 ' if options.non_root else ''}/app/{jar_path} app.jar",
-            "EXPOSE 8080",
-            "EXPOSE 8081",
-        ]
-    )
+        lines.extend(
+            [
+                "WORKDIR /app",
+                f"COPY --from=build {'--chown=1001:1001 ' if options.non_root else ''}/app/{jar_path} app.jar",
+                "EXPOSE 8080",
+                "EXPOSE 8081",
+            ]
+        )
 
-    if options.use_jlink:
+    if options.use_jlink and options.runtime_image != "distroless":
         lines.extend(
             [
                 "COPY --from=jre-builder /opt/java /opt/java",
@@ -126,7 +155,7 @@ def build_dockerfile(options: DockerfileOptions) -> str:
         )
 
     entrypoint = ["java", *jvm_args, "-jar", "app.jar"]
-    if options.non_root:
+    if options.non_root and options.runtime_image != "distroless":
         lines.append("USER 1001")
     lines.append("ENTRYPOINT [" + ", ".join(f'"{arg}"' for arg in entrypoint) + "]")
     lines.append("")
@@ -167,7 +196,15 @@ def explain_dockerfile_text(text: str) -> dict[str, object]:
                 "reason": "Caches Maven or Gradle dependencies between builds.",
             }
         )
-    if "USER 1001" in text:
+    if "gcr.io/distroless" in text:
+        features.append(
+            {
+                "name": "distroless runtime",
+                "enabled": True,
+                "reason": "Uses a minimal distroless runtime image.",
+            }
+        )
+    if "USER 1001" in text or "USER nonroot" in text or "gcr.io/distroless" in text:
         features.append(
             {
                 "name": "non-root runtime",

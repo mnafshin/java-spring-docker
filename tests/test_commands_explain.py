@@ -70,6 +70,21 @@ class ExplainCommandTests(unittest.TestCase):
             self.assertEqual(code, EXIT_USAGE)
             self.assertEqual(stdout.getvalue(), "")
 
+    def test_explain_distroless_output_mentions_distroless(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            dockerfile = root / "Dockerfile.generated"
+            dockerfile.write_text(
+                build_dockerfile(DockerfileOptions(build_tool="maven", runtime_image="distroless", use_jlink=False)),
+                encoding="utf-8",
+            )
+            stdout = StringIO()
+            with redirect_stdout(stdout):
+                code = cmd_explain(root, "Dockerfile.generated", "json")
+            self.assertEqual(code, EXIT_OK)
+            payload = json.loads(stdout.getvalue())
+            self.assertIn("distroless runtime", [feature["name"] for feature in payload["features"]])
+
 
 if __name__ == "__main__":
     unittest.main()

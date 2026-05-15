@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from springdocker.commands import cmd_benchmark_generate, cmd_benchmark_run, cmd_dockerfile_generate, cmd_explain
+from springdocker.dockerfile import DockerfileOptions, build_dockerfile
 
 
 class _FakeCompleted:
@@ -49,6 +50,9 @@ class InternalFlowTests(unittest.TestCase):
             )
             self.assertEqual(code, 0)
             self.assertTrue((root / "benchmarks" / "01-multi-stage-build-structure" / "variants").exists())
+            distroless = root / "benchmarks" / "06-base-image-choice" / "variants" / "distroless-nonroot" / "Dockerfile"
+            self.assertTrue(distroless.exists())
+            self.assertIn("gcr.io/distroless", distroless.read_text(encoding="utf-8"))
 
     def test_benchmark_run_without_legacy_script(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -100,6 +104,14 @@ class InternalFlowTests(unittest.TestCase):
                 explain_code = cmd_explain(root, "Dockerfile.generated", "table")
             self.assertEqual(explain_code, 0)
             self.assertIn("jlink runtime", stdout.getvalue())
+
+    def test_distroless_dockerfile_generation(self) -> None:
+        dockerfile = build_dockerfile(
+            DockerfileOptions(build_tool="maven", runtime_image="distroless", use_jlink=False)
+        )
+        self.assertIn("gcr.io/distroless/java25-debian12:nonroot", dockerfile)
+        self.assertNotIn("RUN groupadd", dockerfile)
+        self.assertNotIn("RUN install -d -m 755 /app", dockerfile)
 
 
 if __name__ == "__main__":

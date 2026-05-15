@@ -56,7 +56,7 @@ This report summarizes the current sample benchmark snapshot used by `springdock
 | Variant | Result |
 |---|---|
 | temurin-jre | larger but simplest |
-| minimal-runtime | smaller image, more constrained runtime |
+| distroless-nonroot | smaller attack surface, minimal runtime |
 
 ### 07 · Native vs JVM
 
