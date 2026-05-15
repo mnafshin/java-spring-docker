@@ -34,3 +34,9 @@ mypy src
 - `tests/e2e/` for end-to-end CLI flows
 - `tests/benchmark/` for benchmark and snapshot coverage
 - `samples/java-spring-docker/` for sample project assets
+
+## Releases
+
+- Release-please opens semantic version release PRs from `main`.
+- The tag-publish workflow only runs after a `vX.Y.Z` tag exists.
+- `CHANGELOG.md` is updated from the release process and published with each release.
