@@ -1,5 +1,11 @@
 # springdocker
 
+[![CI](https://github.com/mnafshin/java-spring-docker/actions/workflows/ci.yml/badge.svg)](https://github.com/mnafshin/java-spring-docker/actions/workflows/ci.yml)
+[![Release](https://github.com/mnafshin/java-spring-docker/actions/workflows/release.yml/badge.svg)](https://github.com/mnafshin/java-spring-docker/actions/workflows/release.yml)
+[![Lint](https://img.shields.io/badge/lint-ruff-blue)](https://github.com/astral-sh/ruff)
+[![Coverage](https://img.shields.io/badge/coverage-%3E%3D75%25-brightgreen)](./pyproject.toml)
+[![Benchmark](https://img.shields.io/badge/benchmark-regression--gated-orange)](./docs/benchmark-methodology.md)
+
 Developer toolkit for Spring Boot containerization and benchmark-driven JVM tuning.
 
 `springdocker` is a Python CLI that helps you inspect a Spring Boot project, generate a Dockerfile, create benchmark assets, run benchmark suites, and summarize benchmark results.
