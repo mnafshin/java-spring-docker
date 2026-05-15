@@ -106,6 +106,7 @@ This repository currently targets:
 - `docs/extensions.md`
 - `docs/native-image-roadmap.md`
 - `docs/distribution.md`
+- `docs/compatibility-matrix.md`
 - `docs/security-hardening.md`
 - `docs/multiarch.md`
 - `docs/onboarding.md`
