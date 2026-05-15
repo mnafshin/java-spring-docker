@@ -23,6 +23,13 @@ Upgrade:
 pipx upgrade springdocker
 ```
 
+### uv
+
+```bash
+uv tool install springdocker
+uv tool upgrade springdocker
+```
+
 ## Quick usage
 
 ```bash
@@ -132,6 +139,10 @@ Use `--format json` when you want stable structured output.
 ## Security hardening
 
 See `docs/security-hardening.md` for the runtime hardening defaults and recommended `docker run` flags.
+
+## Binary distribution
+
+See `docs/distribution.md` for packaging notes and sample Homebrew, Scoop, standalone binary, and Docker runtime artifacts.
 
 ## Multi-architecture builds
 
