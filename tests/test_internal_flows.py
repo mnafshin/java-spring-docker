@@ -36,7 +36,9 @@ class InternalFlowTests(unittest.TestCase):
                 use_legacy_scripts=False,
             )
             self.assertEqual(code, 0)
+            generated = (root / "Dockerfile.generated").read_text(encoding="utf-8")
             self.assertTrue((root / "Dockerfile.generated").exists())
+            self.assertIn("VOLUME /tmp", generated)
 
     def test_benchmark_generate_without_legacy_script(self) -> None:
         with tempfile.TemporaryDirectory() as td:

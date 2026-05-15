@@ -109,6 +109,7 @@ def build_dockerfile(options: DockerfileOptions) -> str:
         lines.extend(
             [
                 "WORKDIR /app",
+                "VOLUME /tmp",
                 f"COPY --from=build /app/{jar_path} app.jar",
                 "EXPOSE 8080",
                 "EXPOSE 8081",
@@ -139,6 +140,7 @@ def build_dockerfile(options: DockerfileOptions) -> str:
         lines.extend(
             [
                 "WORKDIR /app",
+                "VOLUME /tmp",
                 f"COPY --from=build {'--chown=1001:1001 ' if options.non_root else ''}/app/{jar_path} app.jar",
                 "EXPOSE 8080",
                 "EXPOSE 8081",
@@ -158,6 +160,11 @@ def build_dockerfile(options: DockerfileOptions) -> str:
     if options.non_root and options.runtime_image != "distroless":
         lines.append("USER 1001")
     lines.append("ENTRYPOINT [" + ", ".join(f'"{arg}"' for arg in entrypoint) + "]")
+    lines.extend(
+        [
+            "# Runtime hardening tip: run with --read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs /tmp",
+        ]
+    )
     lines.append("")
     return "\n".join(lines)
 
@@ -204,6 +211,14 @@ def explain_dockerfile_text(text: str) -> dict[str, object]:
                 "reason": "Uses a minimal distroless runtime image.",
             }
         )
+    if "VOLUME /tmp" in text:
+        features.append(
+            {
+                "name": "read-only filesystem ready",
+                "enabled": True,
+                "reason": "Keeps /tmp writable when the container root filesystem is read-only.",
+            }
+        )
     if "USER 1001" in text or "USER nonroot" in text or "gcr.io/distroless" in text:
         features.append(
             {
@@ -245,6 +260,8 @@ def explain_dockerfile_text(text: str) -> dict[str, object]:
         summary_parts.append("It runs as a non-root user.")
     if any(feature["name"] == "BuildKit cache" for feature in features):
         summary_parts.append("It uses BuildKit cache mounts to speed up repeat builds.")
+    if any(feature["name"] == "read-only filesystem ready" for feature in features):
+        summary_parts.append("It keeps /tmp writable for read-only root filesystem deployments.")
     if any(feature["name"] == "tuned JVM flags" for feature in features):
         summary_parts.append("It applies container-oriented JVM defaults.")
     if must_have_modules:

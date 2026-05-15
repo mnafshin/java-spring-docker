@@ -128,6 +128,10 @@ Use `--format json` for machine-readable output.
 
 Use `--format json` when you want stable structured output.
 
+## Security hardening
+
+See `docs/security-hardening.md` for the runtime hardening defaults and recommended `docker run` flags.
+
 ## Compare command
 
 `springdocker benchmark compare` compares each variant against a required baseline variant and reports deltas.

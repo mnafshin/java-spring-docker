@@ -33,6 +33,7 @@ class ExplainCommandTests(unittest.TestCase):
             self.assertEqual(payload["build_tool"], "maven")
             self.assertEqual(payload["java_version"], 25)
             self.assertIn("jlink runtime", [feature["name"] for feature in payload["features"]])
+            self.assertIn("read-only filesystem ready", [feature["name"] for feature in payload["features"]])
 
     def test_explain_generated_dockerfile_table(self) -> None:
         with tempfile.TemporaryDirectory() as td:

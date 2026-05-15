@@ -95,6 +95,7 @@ This repository currently targets:
 - `docs/architecture.md`
 - `docs/benchmark-methodology.md`
 - `docs/benchmark-comparison.md`
+- `docs/security-hardening.md`
 - `docs/onboarding.md`
 - `docs/jvm-optimization.md`
 - `ROADMAP.md`
