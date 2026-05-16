@@ -109,6 +109,7 @@ This repository currently targets:
 - `docs/distribution.md`
 - `docs/compatibility-matrix.md`
 - `docs/security-hardening.md`
+- `docs/observability.md`
 - `docs/kubernetes.md`
 - `docs/multiarch.md`
 - `docs/onboarding.md`
