@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 import statistics
 from dataclasses import dataclass
 from pathlib import Path
@@ -27,6 +28,13 @@ class VariantSummary:
     startup_p95_ms: float | None
     image_mb_avg: float | None
     success_rate_pct: float
+    build_stddev_ms: float | None = None
+    build_ci95_low_ms: float | None = None
+    build_ci95_high_ms: float | None = None
+    startup_p99_ms: float | None = None
+    startup_stddev_ms: float | None = None
+    startup_ci95_low_ms: float | None = None
+    startup_ci95_high_ms: float | None = None
     rss_mb_avg: float | None = None
     cpu_pct_avg: float | None = None
     host: str | None = None
@@ -54,6 +62,29 @@ def _p95(values: list[int]) -> float | None:
     if len(values) == 1:
         return float(values[0])
     return statistics.quantiles(values, n=20)[18]
+
+
+def _p99(values: list[int]) -> float | None:
+    if not values:
+        return None
+    if len(values) == 1:
+        return float(values[0])
+    return statistics.quantiles(values, n=100)[98]
+
+
+def _stddev(values: list[int]) -> float | None:
+    if len(values) < 2:
+        return None
+    return statistics.stdev(values)
+
+
+def _ci95(values: list[int]) -> tuple[float | None, float | None]:
+    if len(values) < 2:
+        return None, None
+    mean = statistics.mean(values)
+    stddev = statistics.stdev(values)
+    margin = 1.96 * (stddev / math.sqrt(len(values)))
+    return mean - margin, mean + margin
 
 
 def summarize_csv(path: Path, scenario: str | None = None, variant: str | None = None) -> list[VariantSummary]:
@@ -96,6 +127,8 @@ def summarize_csv(path: Path, scenario: str | None = None, variant: str | None =
         ok = sum(1 for i in items if i.get("status") == "ok")
         total = len(items)
         first = items[0] if items else {}
+        build_ci95_low, build_ci95_high = _ci95(build)
+        startup_ci95_low, startup_ci95_high = _ci95(startup)
 
         summaries.append(
             VariantSummary(
@@ -103,8 +136,15 @@ def summarize_csv(path: Path, scenario: str | None = None, variant: str | None =
                 variant=vr,
                 runs=total,
                 build_avg_ms=statistics.mean(build) if build else None,
+                build_stddev_ms=_stddev(build),
+                build_ci95_low_ms=build_ci95_low,
+                build_ci95_high_ms=build_ci95_high,
                 startup_avg_ms=statistics.mean(startup) if startup else None,
                 startup_p95_ms=_p95(startup),
+                startup_p99_ms=_p99(startup),
+                startup_stddev_ms=_stddev(startup),
+                startup_ci95_low_ms=startup_ci95_low,
+                startup_ci95_high_ms=startup_ci95_high,
                 image_mb_avg=(statistics.mean(image) / (1024 * 1024)) if image else None,
                 rss_mb_avg=(statistics.mean(rss) / (1024 * 1024)) if rss else None,
                 cpu_pct_avg=statistics.mean(cpu) if cpu else None,
@@ -120,19 +160,33 @@ def summarize_csv(path: Path, scenario: str | None = None, variant: str | None =
 
 def format_table(summaries: list[VariantSummary]) -> str:
     lines = [
-        "| Scenario | Variant | Runs | Build avg (ms) | Startup avg (ms) | Startup p95 (ms) | Image MB avg | RSS MB avg | CPU avg (%) | Success rate | Host | Docker | Profile |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|",
+        "| Scenario | Variant | Runs | Build avg (ms) | Build stddev (ms) | Build CI95 (ms) | Startup avg (ms) | Startup stddev (ms) | Startup p95 (ms) | Startup p99 (ms) | Startup CI95 (ms) | Image MB avg | RSS MB avg | CPU avg (%) | Success rate | Host | Docker | Profile |",
+        "|---|---|---:|---:|---:|---|---:|---:|---:|---:|---|---:|---:|---:|---:|---|---|---|",
     ]
 
     for s in summaries:
         build_avg = f"{s.build_avg_ms:.1f}" if s.build_avg_ms is not None else "-"
+        build_stddev = f"{s.build_stddev_ms:.1f}" if s.build_stddev_ms is not None else "-"
+        build_ci95 = (
+            f"{s.build_ci95_low_ms:.1f}..{s.build_ci95_high_ms:.1f}"
+            if s.build_ci95_low_ms is not None and s.build_ci95_high_ms is not None
+            else "-"
+        )
         startup_avg = f"{s.startup_avg_ms:.1f}" if s.startup_avg_ms is not None else "-"
+        startup_stddev = f"{s.startup_stddev_ms:.1f}" if s.startup_stddev_ms is not None else "-"
         startup_p95 = f"{s.startup_p95_ms:.1f}" if s.startup_p95_ms is not None else "-"
+        startup_p99 = f"{s.startup_p99_ms:.1f}" if s.startup_p99_ms is not None else "-"
+        startup_ci95 = (
+            f"{s.startup_ci95_low_ms:.1f}..{s.startup_ci95_high_ms:.1f}"
+            if s.startup_ci95_low_ms is not None and s.startup_ci95_high_ms is not None
+            else "-"
+        )
         image_mb = f"{s.image_mb_avg:.2f}" if s.image_mb_avg is not None else "-"
         rss_mb = f"{s.rss_mb_avg:.2f}" if s.rss_mb_avg is not None else "-"
         cpu_pct = f"{s.cpu_pct_avg:.1f}" if s.cpu_pct_avg is not None else "-"
         lines.append(
-            f"| {s.scenario} | {s.variant} | {s.runs} | {build_avg} | {startup_avg} | {startup_p95} | "
+            f"| {s.scenario} | {s.variant} | {s.runs} | {build_avg} | {build_stddev} | {build_ci95} | "
+            f"{startup_avg} | {startup_stddev} | {startup_p95} | {startup_p99} | {startup_ci95} | "
             f"{image_mb} | {rss_mb} | {cpu_pct} | {s.success_rate_pct:.1f}% | "
             f"{s.host or '-'} | {s.docker_version or '-'} | {s.run_profile or '-'} |"
         )
@@ -147,8 +201,15 @@ def format_json(summaries: list[VariantSummary]) -> str:
             "variant": s.variant,
             "runs": s.runs,
             "build_avg_ms": s.build_avg_ms,
+            "build_stddev_ms": s.build_stddev_ms,
+            "build_ci95_low_ms": s.build_ci95_low_ms,
+            "build_ci95_high_ms": s.build_ci95_high_ms,
             "startup_avg_ms": s.startup_avg_ms,
             "startup_p95_ms": s.startup_p95_ms,
+            "startup_p99_ms": s.startup_p99_ms,
+            "startup_stddev_ms": s.startup_stddev_ms,
+            "startup_ci95_low_ms": s.startup_ci95_low_ms,
+            "startup_ci95_high_ms": s.startup_ci95_high_ms,
             "image_mb_avg": s.image_mb_avg,
             "rss_mb_avg": s.rss_mb_avg,
             "cpu_pct_avg": s.cpu_pct_avg,

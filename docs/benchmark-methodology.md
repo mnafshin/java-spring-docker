@@ -54,12 +54,19 @@ Warmup runs are optional and are executed before recording rows; they are exclud
 `springdocker benchmark analyze` summarizes the raw CSV with:
 
 - mean build time
+- build-time standard deviation
+- build-time 95% confidence interval
 - mean startup time
+- startup standard deviation
 - p95 startup time
+- p99 startup time
+- startup 95% confidence interval
 - average image size
 - average RSS memory
 - average CPU usage
 - success rate
+
+Confidence intervals use a 95% normal-approximation interval (`mean ± 1.96 * stdev / sqrt(n)`) when at least two valid samples exist.
 
 For historical regression tracking, save a baseline summary with `--output baseline.json` and compare later runs with `--baseline baseline.json --fail-on-regression-above 20`.
 

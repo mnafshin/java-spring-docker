@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -63,6 +64,28 @@ class AnalyzeTests(unittest.TestCase):
             self.assertAlmostEqual(summaries[0].cpu_pct_avg or 0.0, 33.5)
             self.assertEqual(summaries[0].host, "host1")
             self.assertIn('"rss_mb_avg": 2.0', format_json(summaries))
+
+    def test_statistical_metrics_include_stddev_p99_and_ci95(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            csv_path = Path(td) / "raw.csv"
+            csv_path.write_text(
+                "date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes\n"
+                "2026-01-01,s1,v1,1,100,1048576,200,ok,\n"
+                "2026-01-01,s1,v1,2,200,1048576,400,ok,\n"
+                "2026-01-01,s1,v1,3,300,1048576,600,ok,\n",
+                encoding="utf-8",
+            )
+            summaries = summarize_csv(csv_path)
+            summary = summaries[0]
+            self.assertIsNotNone(summary.build_stddev_ms)
+            self.assertIsNotNone(summary.startup_p99_ms)
+            self.assertIsNotNone(summary.startup_ci95_low_ms)
+            payload = json.loads(format_json(summaries))
+            self.assertIn("build_stddev_ms", payload[0])
+            self.assertIn("startup_p99_ms", payload[0])
+            table = format_table(summaries)
+            self.assertIn("Build stddev (ms)", table)
+            self.assertIn("Startup p99 (ms)", table)
 
 
 if __name__ == "__main__":
