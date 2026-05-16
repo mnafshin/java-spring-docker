@@ -30,4 +30,8 @@ docker run --read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs /
 
 ## Current scope
 
-This repository documents the secure defaults and bakes in the safer runtime layout, but it does not automate SBOM generation or image signing yet.
+This repository now automates baseline supply-chain controls in GitHub Actions:
+
+- CI generates and publishes an SPDX SBOM artifact.
+- CI runs a CRITICAL-severity vulnerability scan gate.
+- The release workflow signs build artifacts with keyless Cosign and emits provenance attestations.
