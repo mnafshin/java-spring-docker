@@ -66,6 +66,12 @@ Warmup runs are optional and are executed before recording rows; they are exclud
 - average CPU usage
 - success rate
 
+When available, the analyzer also reports optional profiling columns for:
+
+- GC pause duration
+- allocation trend
+- startup phase breakdown (`boot`, `context`, `web server`, and aggregate phase total)
+
 Confidence intervals use a 95% normal-approximation interval (`mean ± 1.96 * stdev / sqrt(n)`) when at least two valid samples exist.
 
 For historical regression tracking, save a baseline summary with `--output baseline.json` and compare later runs with `--baseline baseline.json --fail-on-regression-above 20`.

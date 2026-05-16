@@ -6,7 +6,8 @@ from pathlib import Path
 from springdocker.dockerfile import DockerfileOptions, build_dockerfile
 
 EXPECTED_CSV_HEADER = (
-    "date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes,host,docker_version,run_profile\n"
+    "date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes,host,docker_version,run_profile,"
+    "gc_pause_ms,alloc_mb,startup_phase_boot_ms,startup_phase_context_ms,startup_phase_web_server_ms\n"
 )
 
 

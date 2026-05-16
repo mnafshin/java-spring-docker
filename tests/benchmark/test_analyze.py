@@ -87,6 +87,29 @@ class AnalyzeTests(unittest.TestCase):
             self.assertIn("Build stddev (ms)", table)
             self.assertIn("Startup p99 (ms)", table)
 
+    def test_profiling_metrics_are_reported_when_present(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            csv_path = Path(td) / "raw.csv"
+            csv_path.write_text(
+                "date,scenario,variant,run,build_ms,image_bytes,startup_ms,status,notes,gc_pause_ms,alloc_mb,"
+                "startup_phase_boot_ms,startup_phase_context_ms,startup_phase_web_server_ms\n"
+                "2026-01-01,s1,v1,1,100,1048576,200,ok,,5.0,12.5,30.0,40.0,50.0\n"
+                "2026-01-01,s1,v1,2,120,1048576,220,ok,,7.0,14.5,35.0,45.0,55.0\n",
+                encoding="utf-8",
+            )
+            summaries = summarize_csv(csv_path)
+            summary = summaries[0]
+            self.assertAlmostEqual(summary.gc_pause_ms_avg or 0.0, 6.0)
+            self.assertAlmostEqual(summary.alloc_mb_avg or 0.0, 13.5)
+            self.assertAlmostEqual(summary.startup_phase_boot_ms_avg or 0.0, 32.5)
+            self.assertAlmostEqual(summary.startup_phase_total_ms_avg or 0.0, 127.5)
+            payload = json.loads(format_json(summaries))
+            self.assertIn("gc_pause_ms_avg", payload[0])
+            self.assertIn("startup_phase_total_ms_avg", payload[0])
+            table = format_table(summaries)
+            self.assertIn("GC pause avg (ms)", table)
+            self.assertIn("Startup phase total (ms)", table)
+
 
 if __name__ == "__main__":
     unittest.main()

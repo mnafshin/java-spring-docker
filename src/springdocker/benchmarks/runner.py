@@ -200,6 +200,11 @@ def _run_standard_scenario(
                         host,
                         docker_version,
                         run_profile,
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
                     ],
                 )
                 print(f"run {run_number}: build failed")
@@ -250,6 +255,11 @@ def _run_standard_scenario(
                     host,
                     docker_version,
                     run_profile,
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
                 ],
             )
             print(

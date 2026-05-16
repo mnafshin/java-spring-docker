@@ -28,3 +28,5 @@
 ## Current scope
 
 The CLI does not yet model GC tuning, CDS toggles, or AOT-specific runtime switches as first-class options.
+The benchmark analyzer can still surface optional GC/allocation/startup-phase profiling columns when they
+are present in `raw.csv`.

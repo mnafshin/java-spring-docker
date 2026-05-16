@@ -16,6 +16,13 @@ REQUIRED_COLUMNS = {
     "status",
 }
 OPTIONAL_COLUMNS = {"rss_bytes", "cpu_pct", "host", "docker_version", "run_profile"}
+OPTIONAL_COLUMNS |= {
+    "gc_pause_ms",
+    "alloc_mb",
+    "startup_phase_boot_ms",
+    "startup_phase_context_ms",
+    "startup_phase_web_server_ms",
+}
 
 
 @dataclass(frozen=True)
@@ -35,6 +42,12 @@ class VariantSummary:
     startup_stddev_ms: float | None = None
     startup_ci95_low_ms: float | None = None
     startup_ci95_high_ms: float | None = None
+    gc_pause_ms_avg: float | None = None
+    alloc_mb_avg: float | None = None
+    startup_phase_boot_ms_avg: float | None = None
+    startup_phase_context_ms_avg: float | None = None
+    startup_phase_web_server_ms_avg: float | None = None
+    startup_phase_total_ms_avg: float | None = None
     rss_mb_avg: float | None = None
     cpu_pct_avg: float | None = None
     host: str | None = None
@@ -87,6 +100,10 @@ def _ci95(values: list[int]) -> tuple[float | None, float | None]:
     return mean - margin, mean + margin
 
 
+def _mean_float(values: list[float]) -> float | None:
+    return statistics.mean(values) if values else None
+
+
 def summarize_csv(path: Path, scenario: str | None = None, variant: str | None = None) -> list[VariantSummary]:
     with path.open(newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -124,6 +141,23 @@ def summarize_csv(path: Path, scenario: str | None = None, variant: str | None =
             if cpu_value is not None and cpu_value >= 0.0:
                 cpu.append(cpu_value)
 
+        gc_pause: list[float] = []
+        alloc: list[float] = []
+        phase_boot: list[float] = []
+        phase_context: list[float] = []
+        phase_web_server: list[float] = []
+        for item in items:
+            if (value := _to_float_or_none(item.get("gc_pause_ms", ""))) is not None and value >= 0.0:
+                gc_pause.append(value)
+            if (value := _to_float_or_none(item.get("alloc_mb", ""))) is not None and value >= 0.0:
+                alloc.append(value)
+            if (value := _to_float_or_none(item.get("startup_phase_boot_ms", ""))) is not None and value >= 0.0:
+                phase_boot.append(value)
+            if (value := _to_float_or_none(item.get("startup_phase_context_ms", ""))) is not None and value >= 0.0:
+                phase_context.append(value)
+            if (value := _to_float_or_none(item.get("startup_phase_web_server_ms", ""))) is not None and value >= 0.0:
+                phase_web_server.append(value)
+
         ok = sum(1 for i in items if i.get("status") == "ok")
         total = len(items)
         first = items[0] if items else {}
@@ -145,6 +179,18 @@ def summarize_csv(path: Path, scenario: str | None = None, variant: str | None =
                 startup_stddev_ms=_stddev(startup),
                 startup_ci95_low_ms=startup_ci95_low,
                 startup_ci95_high_ms=startup_ci95_high,
+                gc_pause_ms_avg=_mean_float(gc_pause),
+                alloc_mb_avg=_mean_float(alloc),
+                startup_phase_boot_ms_avg=_mean_float(phase_boot),
+                startup_phase_context_ms_avg=_mean_float(phase_context),
+                startup_phase_web_server_ms_avg=_mean_float(phase_web_server),
+                startup_phase_total_ms_avg=(
+                    (_mean_float(phase_boot) or 0.0)
+                    + (_mean_float(phase_context) or 0.0)
+                    + (_mean_float(phase_web_server) or 0.0)
+                    if any([phase_boot, phase_context, phase_web_server])
+                    else None
+                ),
                 image_mb_avg=(statistics.mean(image) / (1024 * 1024)) if image else None,
                 rss_mb_avg=(statistics.mean(rss) / (1024 * 1024)) if rss else None,
                 cpu_pct_avg=statistics.mean(cpu) if cpu else None,
@@ -160,8 +206,8 @@ def summarize_csv(path: Path, scenario: str | None = None, variant: str | None =
 
 def format_table(summaries: list[VariantSummary]) -> str:
     lines = [
-        "| Scenario | Variant | Runs | Build avg (ms) | Build stddev (ms) | Build CI95 (ms) | Startup avg (ms) | Startup stddev (ms) | Startup p95 (ms) | Startup p99 (ms) | Startup CI95 (ms) | Image MB avg | RSS MB avg | CPU avg (%) | Success rate | Host | Docker | Profile |",
-        "|---|---|---:|---:|---:|---|---:|---:|---:|---:|---|---:|---:|---:|---:|---|---|---|",
+        "| Scenario | Variant | Runs | Build avg (ms) | Build stddev (ms) | Build CI95 (ms) | Startup avg (ms) | Startup stddev (ms) | Startup p95 (ms) | Startup p99 (ms) | Startup CI95 (ms) | GC pause avg (ms) | Alloc avg (MB) | Boot avg (ms) | Context avg (ms) | Web server avg (ms) | Startup phase total (ms) | Image MB avg | RSS MB avg | CPU avg (%) | Success rate | Host | Docker | Profile |",
+        "|---|---|---:|---:|---:|---|---:|---:|---:|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|",
     ]
 
     for s in summaries:
@@ -181,12 +227,21 @@ def format_table(summaries: list[VariantSummary]) -> str:
             if s.startup_ci95_low_ms is not None and s.startup_ci95_high_ms is not None
             else "-"
         )
+        gc_pause = f"{s.gc_pause_ms_avg:.1f}" if s.gc_pause_ms_avg is not None else "-"
+        alloc = f"{s.alloc_mb_avg:.2f}" if s.alloc_mb_avg is not None else "-"
+        boot = f"{s.startup_phase_boot_ms_avg:.1f}" if s.startup_phase_boot_ms_avg is not None else "-"
+        context = f"{s.startup_phase_context_ms_avg:.1f}" if s.startup_phase_context_ms_avg is not None else "-"
+        web_server = f"{s.startup_phase_web_server_ms_avg:.1f}" if s.startup_phase_web_server_ms_avg is not None else "-"
+        phase_total = (
+            f"{s.startup_phase_total_ms_avg:.1f}" if s.startup_phase_total_ms_avg is not None else "-"
+        )
         image_mb = f"{s.image_mb_avg:.2f}" if s.image_mb_avg is not None else "-"
         rss_mb = f"{s.rss_mb_avg:.2f}" if s.rss_mb_avg is not None else "-"
         cpu_pct = f"{s.cpu_pct_avg:.1f}" if s.cpu_pct_avg is not None else "-"
         lines.append(
             f"| {s.scenario} | {s.variant} | {s.runs} | {build_avg} | {build_stddev} | {build_ci95} | "
             f"{startup_avg} | {startup_stddev} | {startup_p95} | {startup_p99} | {startup_ci95} | "
+            f"{gc_pause} | {alloc} | {boot} | {context} | {web_server} | {phase_total} | "
             f"{image_mb} | {rss_mb} | {cpu_pct} | {s.success_rate_pct:.1f}% | "
             f"{s.host or '-'} | {s.docker_version or '-'} | {s.run_profile or '-'} |"
         )
@@ -210,6 +265,12 @@ def format_json(summaries: list[VariantSummary]) -> str:
             "startup_stddev_ms": s.startup_stddev_ms,
             "startup_ci95_low_ms": s.startup_ci95_low_ms,
             "startup_ci95_high_ms": s.startup_ci95_high_ms,
+            "gc_pause_ms_avg": s.gc_pause_ms_avg,
+            "alloc_mb_avg": s.alloc_mb_avg,
+            "startup_phase_boot_ms_avg": s.startup_phase_boot_ms_avg,
+            "startup_phase_context_ms_avg": s.startup_phase_context_ms_avg,
+            "startup_phase_web_server_ms_avg": s.startup_phase_web_server_ms_avg,
+            "startup_phase_total_ms_avg": s.startup_phase_total_ms_avg,
             "image_mb_avg": s.image_mb_avg,
             "rss_mb_avg": s.rss_mb_avg,
             "cpu_pct_avg": s.cpu_pct_avg,
