@@ -36,17 +36,17 @@ class DockerfileServiceTests(unittest.TestCase):
     def test_generate_dockerfile_creates_parent_directories(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
-            destination = generate_dockerfile(
+            generated = generate_dockerfile(
                 project_root=root,
                 output_path="nested/Dockerfile.generated",
                 build_tool="maven",
                 java_version=21,
                 must_have_modules_file=None,
             )
+            destination = generated.path
             self.assertTrue(destination.exists())
             self.assertIn("FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk AS build", destination.read_text("utf-8"))
 
 
 if __name__ == "__main__":
     unittest.main()
-

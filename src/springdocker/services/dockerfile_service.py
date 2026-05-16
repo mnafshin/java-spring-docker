@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 from ..dockerfile import DockerfileOptions, build_dockerfile, explain_dockerfile_text
+from ..plugins import apply_dockerfile_mutators
 
 
 def resolve_path(project_root: Path, raw_path: str) -> Path:
@@ -42,21 +44,27 @@ def generate_dockerfile(
     build_tool: str,
     java_version: int,
     must_have_modules_file: str | None,
-) -> Path:
+) -> GeneratedDockerfile:
     must_have_modules = parse_must_have_modules(project_root, must_have_modules_file)
+    options = DockerfileOptions(
+        build_tool=build_tool,
+        java_version=java_version,
+        must_have_modules=must_have_modules,
+    )
+    generated = apply_dockerfile_mutators(
+        dockerfile_text=build_dockerfile(options),
+        options=options,
+    )
     destination = resolve_path(project_root, output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_text(
-        build_dockerfile(
-            DockerfileOptions(
-                build_tool=build_tool,
-                java_version=java_version,
-                must_have_modules=must_have_modules,
-            )
-        ),
-        encoding="utf-8",
-    )
-    return destination
+    destination.write_text(generated.dockerfile_text, encoding="utf-8")
+    return GeneratedDockerfile(path=destination, plugin_warnings=generated.warnings)
+
+
+@dataclass(frozen=True)
+class GeneratedDockerfile:
+    path: Path
+    plugin_warnings: tuple[str, ...]
 
 
 def explain_dockerfile(project_root: Path, dockerfile_path: str) -> dict[str, object]:
@@ -66,4 +74,3 @@ def explain_dockerfile(project_root: Path, dockerfile_path: str) -> dict[str, ob
     payload = dict(explain_dockerfile_text(path.read_text(encoding="utf-8")))
     payload["path"] = str(path)
     return payload
-

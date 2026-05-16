@@ -213,7 +213,7 @@ def cmd_dockerfile_generate(
         return run_checked(cmd, project_root)
 
     try:
-        destination = dockerfile_service.generate_dockerfile(
+        generated = dockerfile_service.generate_dockerfile(
             project_root=project_root,
             output_path=output,
             build_tool=info.build_tool,
@@ -223,7 +223,9 @@ def cmd_dockerfile_generate(
     except ValueError as exc:
         print_error(str(exc))
         return EXIT_USAGE
-    print(f"wrote dockerfile: {destination}")
+    for warning in generated.plugin_warnings:
+        print_warning(warning)
+    print(f"wrote dockerfile: {generated.path}")
     return EXIT_OK
 
 
