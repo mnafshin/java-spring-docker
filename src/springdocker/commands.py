@@ -272,6 +272,7 @@ def cmd_benchmark_run(
     warmup_runs: int,
     normalized_runtime: bool,
     use_legacy_scripts: bool,
+    max_workers: int = 1,
 ) -> int:
     try:
         info = inspect_project(project_root, build_tool)
@@ -285,6 +286,7 @@ def cmd_benchmark_run(
             cpuset_cpus=cpuset_cpus,
             memory_limit=memory_limit,
             warmup_runs=warmup_runs,
+            max_workers=max_workers,
             normalized_runtime=normalized_runtime,
         )
     except ValueError as exc:
@@ -316,6 +318,7 @@ def cmd_benchmark_run(
         cpuset_cpus=cpuset_cpus,
         memory_limit=memory_limit,
         warmup_runs=warmup_runs,
+        max_workers=max_workers,
         normalized_runtime=normalized_runtime,
     )
 

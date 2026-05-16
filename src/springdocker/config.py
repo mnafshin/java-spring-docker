@@ -40,6 +40,7 @@ class BenchmarkRunConfig:
     cpuset_cpus: str | None
     memory_limit: str | None
     warmup_runs: int
+    max_workers: int
     normalized_runtime: bool
     use_legacy_scripts: bool
 
@@ -70,6 +71,7 @@ def render_default_config(build_tool: str, profile: str = "quick") -> str:
         "# cpuset_cpus = \"0-1\"\n"
         "# memory_limit = \"2g\"\n"
         "# warmup_runs = 1\n"
+        "# max_workers = 1\n"
         "# normalized_runtime = false\n"
         "legacy_scripts = false\n"
     )
@@ -147,7 +149,11 @@ def _validate_schema(data: dict[str, Any]) -> None:
             {"output", "java_version", "must_have_modules_file", "legacy_scripts", "wizard_args"},
         ),
         ("benchmark", benchmark, {"run", "generate", "profile", "runner_args"}),
-        ("benchmark.run", benchmark_run, {"profile", "runner_args", "cpuset_cpus", "memory_limit", "warmup_runs", "normalized_runtime", "legacy_scripts"}),
+        (
+            "benchmark.run",
+            benchmark_run,
+            {"profile", "runner_args", "cpuset_cpus", "memory_limit", "warmup_runs", "max_workers", "normalized_runtime", "legacy_scripts"},
+        ),
         ("benchmark.generate", benchmark_generate, {"java_version", "legacy_scripts"}),
     ]:
         unknown = sorted(set(section.keys()) - allowed_keys)
@@ -166,6 +172,7 @@ def _validate_schema(data: dict[str, Any]) -> None:
     _expect_optional_str(benchmark_run.get("cpuset_cpus"), "benchmark.run.cpuset_cpus")
     _expect_optional_str(benchmark_run.get("memory_limit"), "benchmark.run.memory_limit")
     _expect_optional_int(benchmark_run.get("warmup_runs"), "benchmark.run.warmup_runs")
+    _expect_optional_int(benchmark_run.get("max_workers"), "benchmark.run.max_workers")
     _expect_optional_bool(benchmark_run.get("normalized_runtime"), "benchmark.run.normalized_runtime")
     _expect_optional_bool(benchmark_run.get("legacy_scripts"), "benchmark.run.legacy_scripts")
     _expect_optional_int(benchmark_generate.get("java_version"), "benchmark.generate.java_version")
@@ -271,6 +278,7 @@ def resolve_benchmark_run_config(
     cli_cpuset_cpus: str | None,
     cli_memory_limit: str | None,
     cli_warmup_runs: int | None,
+    cli_max_workers: int | None,
     cli_normalized_runtime: bool | None,
     cli_use_legacy_scripts: bool | None,
     loaded_config: dict[str, Any],
@@ -318,6 +326,15 @@ def resolve_benchmark_run_config(
     if warmup_runs < 0:
         raise ValueError("benchmark.run.warmup_runs must be >= 0")
 
+    max_workers: int
+    if cli_max_workers is not None:
+        max_workers = cli_max_workers
+    else:
+        raw_max_workers = _expect_optional_int(run_cfg.get("max_workers"), "benchmark.run.max_workers")
+        max_workers = raw_max_workers if raw_max_workers is not None else 1
+    if max_workers < 1:
+        raise ValueError("benchmark.run.max_workers must be >= 1")
+
     normalized_runtime: bool
     if cli_normalized_runtime is not None:
         normalized_runtime = cli_normalized_runtime
@@ -342,6 +359,7 @@ def resolve_benchmark_run_config(
         cpuset_cpus=cpuset_cpus,
         memory_limit=memory_limit,
         warmup_runs=warmup_runs,
+        max_workers=max_workers,
         normalized_runtime=normalized_runtime,
         use_legacy_scripts=use_legacy,
     )

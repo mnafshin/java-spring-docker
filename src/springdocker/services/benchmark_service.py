@@ -20,10 +20,11 @@ def validate_reproducibility_with_legacy(
     cpuset_cpus: str | None,
     memory_limit: str | None,
     warmup_runs: int,
+    max_workers: int,
     normalized_runtime: bool,
 ) -> None:
-    if use_legacy_scripts and any([cpuset_cpus, memory_limit, warmup_runs > 0, normalized_runtime]):
-        raise ValueError("benchmark reproducibility controls require the internal benchmark runner")
+    if use_legacy_scripts and any([cpuset_cpus, memory_limit, warmup_runs > 0, max_workers > 1, normalized_runtime]):
+        raise ValueError("benchmark reproducibility/concurrency controls require the internal benchmark runner")
 
 
 def render_comparison(

@@ -33,18 +33,20 @@ class ConfigTests(unittest.TestCase):
                     "cpuset_cpus": "0-1",
                     "memory_limit": "2g",
                     "warmup_runs": 2,
+                    "max_workers": 2,
                     "normalized_runtime": True,
                     "legacy_scripts": True,
                 }
             },
         }
-        resolved = resolve_benchmark_run_config(None, None, None, None, None, None, None, None, loaded)
+        resolved = resolve_benchmark_run_config(None, None, None, None, None, None, None, None, None, loaded)
         self.assertEqual(resolved.build_tool, "maven")
         self.assertEqual(resolved.profile, "full")
         self.assertEqual(resolved.runner_args, ["--skip-native"])
         self.assertEqual(resolved.cpuset_cpus, "0-1")
         self.assertEqual(resolved.memory_limit, "2g")
         self.assertEqual(resolved.warmup_runs, 2)
+        self.assertEqual(resolved.max_workers, 2)
         self.assertTrue(resolved.normalized_runtime)
         self.assertTrue(resolved.use_legacy_scripts)
 
@@ -62,13 +64,14 @@ class ConfigTests(unittest.TestCase):
                 }
             },
         }
-        resolved = resolve_benchmark_run_config("gradle", "quick", ["--runs", "2"], "2-3", "1g", 0, True, False, loaded)
+        resolved = resolve_benchmark_run_config("gradle", "quick", ["--runs", "2"], "2-3", "1g", 0, 3, True, False, loaded)
         self.assertEqual(resolved.build_tool, "gradle")
         self.assertEqual(resolved.profile, "quick")
         self.assertEqual(resolved.runner_args, ["--runs", "2"])
         self.assertEqual(resolved.cpuset_cpus, "2-3")
         self.assertEqual(resolved.memory_limit, "1g")
         self.assertEqual(resolved.warmup_runs, 0)
+        self.assertEqual(resolved.max_workers, 3)
         self.assertTrue(resolved.normalized_runtime)
         self.assertFalse(resolved.use_legacy_scripts)
 

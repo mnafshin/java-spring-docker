@@ -33,6 +33,7 @@ class BenchmarkServiceTests(unittest.TestCase):
                 cpuset_cpus="0-1",
                 memory_limit=None,
                 warmup_runs=0,
+                max_workers=1,
                 normalized_runtime=False,
             )
 
@@ -65,4 +66,3 @@ class BenchmarkServiceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

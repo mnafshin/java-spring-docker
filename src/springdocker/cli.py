@@ -115,6 +115,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run extra warmup iterations before recording benchmark rows",
     )
     bench_run.add_argument(
+        "--max-workers",
+        type=int,
+        default=None,
+        help="Run standard benchmark scenarios concurrently with up to this many workers",
+    )
+    bench_run.add_argument(
         "--normalized-runtime",
         action=argparse.BooleanOptionalAction,
         default=None,
@@ -235,6 +241,7 @@ def main(argv: list[str] | None = None) -> int:
             cli_cpuset_cpus=args.cpuset_cpus,
             cli_memory_limit=args.memory,
             cli_warmup_runs=args.warmup_runs,
+            cli_max_workers=args.max_workers,
             cli_normalized_runtime=args.normalized_runtime,
             cli_use_legacy_scripts=args.use_legacy_scripts,
             loaded_config=loaded,
@@ -247,6 +254,7 @@ def main(argv: list[str] | None = None) -> int:
             cpuset_cpus=resolved_run.cpuset_cpus,
             memory_limit=resolved_run.memory_limit,
             warmup_runs=resolved_run.warmup_runs,
+            max_workers=resolved_run.max_workers,
             normalized_runtime=resolved_run.normalized_runtime,
             use_legacy_scripts=resolved_run.use_legacy_scripts,
         )

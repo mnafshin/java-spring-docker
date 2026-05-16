@@ -79,6 +79,7 @@ The CI workflow uses the checked-in sample baseline under `samples/java-spring-d
 - `--cpuset-cpus` pins container execution to specific CPUs.
 - `--memory` caps the container memory allocation.
 - `--warmup-runs` performs discarded warmup probes before the measured runs.
+- `--max-workers` runs standard scenarios concurrently with bounded worker parallelism.
 - `--normalized-runtime` applies read-only/no-new-privileges/tmpfs runtime hardening.
 
 The same keys can be set under `[benchmark.run]` in `.springdocker.toml`.

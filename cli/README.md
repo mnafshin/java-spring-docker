@@ -81,6 +81,7 @@ runner_args = ["--skip-native"]
 cpuset_cpus = "0-1"
 memory_limit = "2g"
 warmup_runs = 1
+max_workers = 1
 normalized_runtime = true
 legacy_scripts = false
 ```
@@ -167,6 +168,7 @@ See `docs/multiarch.md` for the Buildx-friendly Dockerfile output and example mu
 - `--cpuset-cpus` pins benchmark containers to specific CPUs.
 - `--memory` caps container memory.
 - `--warmup-runs` executes discarded warmup probes before recording results.
+- `--max-workers` runs standard scenarios concurrently with controlled worker count.
 - `--normalized-runtime` applies read-only, no-new-privileges, and tmpfs isolation.
 
 These settings can also come from `[benchmark.run]` in `.springdocker.toml`.

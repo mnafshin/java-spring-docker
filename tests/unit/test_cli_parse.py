@@ -57,10 +57,11 @@ class CliParseTests(unittest.TestCase):
 
     def test_benchmark_run_parse(self) -> None:
         parser = build_parser()
-        args = parser.parse_args(["benchmark", "run", "--profile", "full"])
+        args = parser.parse_args(["benchmark", "run", "--profile", "full", "--max-workers", "4"])
         self.assertEqual(args.command, "benchmark")
         self.assertEqual(args.benchmark_command, "run")
         self.assertEqual(args.profile, "full")
+        self.assertEqual(args.max_workers, 4)
 
     def test_benchmark_run_parse_reproducibility_flags(self) -> None:
         parser = build_parser()

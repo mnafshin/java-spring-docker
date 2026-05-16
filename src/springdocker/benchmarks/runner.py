@@ -5,6 +5,7 @@ import csv
 import socket
 import subprocess
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -123,6 +124,7 @@ def _run_standard_scenario(
     cpuset_cpus: str | None,
     memory_limit: str | None,
     warmup_runs: int,
+    port_seed: int,
     normalized_runtime: bool,
 ) -> None:
     raw_csv = scenario_dir / "results" / "raw.csv"
@@ -140,7 +142,7 @@ def _run_standard_scenario(
             continue
         variant = variant_dir.name
         image_tag = _tag_for(scenario, variant)
-        host_port = str(19081 + index)
+        host_port = str(19081 + (port_seed * 50) + index)
         runtime_flags = _runtime_flags(cpuset_cpus=cpuset_cpus, memory_limit=memory_limit, normalized_runtime=normalized_runtime)
         print(f"-- variant: {variant}")
 
@@ -264,6 +266,7 @@ def run_benchmarks(
     cpuset_cpus: str | None = None,
     memory_limit: str | None = None,
     warmup_runs: int = 0,
+    max_workers: int = 1,
     normalized_runtime: bool = False,
 ) -> int:
     options = parse_runner_args(profile=profile, extra_args=extra_args)
@@ -273,7 +276,8 @@ def run_benchmarks(
     scenarios = default_scenarios(build_tool=build_tool, java_version=options.java_version)
     print(f"Scenarios loaded: {len(scenarios)}")
 
-    for scenario in scenarios:
+    work_items: list[tuple[int, Path, int]] = []
+    for scenario_index, scenario in enumerate(scenarios):
         if scenario.scenario_type == "native":
             if options.skip_native:
                 print(f"Skipping native scenario: {scenario.id}")
@@ -285,15 +289,45 @@ def run_benchmarks(
             print(f"Skipping missing scenario directory: {scenario.id}")
             continue
         runs = options.runs_override or _default_runs_for(profile=options.profile, scenario_id=scenario.id)
-        _run_standard_scenario(
-            project_root=project_root,
-            scenario_dir=scenario_dir,
-            runs=runs,
-            run_profile=options.profile,
-            cpuset_cpus=cpuset_cpus,
-            memory_limit=memory_limit,
-            warmup_runs=warmup_runs,
-            normalized_runtime=normalized_runtime,
-        )
+        work_items.append((scenario_index, scenario_dir, runs))
+
+    if max_workers <= 1 or len(work_items) <= 1:
+        for scenario_index, scenario_dir, runs in work_items:
+            _run_standard_scenario(
+                project_root=project_root,
+                scenario_dir=scenario_dir,
+                runs=runs,
+                run_profile=options.profile,
+                cpuset_cpus=cpuset_cpus,
+                memory_limit=memory_limit,
+                warmup_runs=warmup_runs,
+                port_seed=scenario_index,
+                normalized_runtime=normalized_runtime,
+            )
+    else:
+        print(f"Running standard scenarios concurrently (max_workers={max_workers})")
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(
+                    _run_standard_scenario,
+                    project_root=project_root,
+                    scenario_dir=scenario_dir,
+                    runs=runs,
+                    run_profile=options.profile,
+                    cpuset_cpus=cpuset_cpus,
+                    memory_limit=memory_limit,
+                    warmup_runs=warmup_runs,
+                    port_seed=scenario_index,
+                    normalized_runtime=normalized_runtime,
+                ): scenario_dir.name
+                for scenario_index, scenario_dir, runs in work_items
+            }
+            for future in as_completed(futures):
+                scenario_name = futures[future]
+                try:
+                    future.result()
+                except Exception as exc:  # pragma: no cover - exercised via command-level integration flow
+                    print(f"Scenario failed: {scenario_name}: {exc}")
+                    return 1
     print("\nAll done. CSV results were updated.")
     return 0
