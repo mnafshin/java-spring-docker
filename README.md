@@ -111,6 +111,7 @@ This repository currently targets:
 - `docs/security-hardening.md`
 - `docs/observability.md`
 - `docs/kubernetes.md`
+- `docs/adr/README.md`
 - `docs/multiarch.md`
 - `docs/onboarding.md`
 - `docs/jvm-optimization.md`

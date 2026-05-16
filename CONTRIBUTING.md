@@ -25,6 +25,8 @@ mypy src
 - Keep commits small and focused.
 - Add or update tests when behavior changes.
 - Update docs when you change CLI flags, generated output, or benchmark flow.
+- Add an ADR under `docs/adr/` when a change alters the plugin model, benchmark methodology,
+  Dockerfile-generation philosophy, or another cross-cutting project decision.
 
 ## Code layout
 
