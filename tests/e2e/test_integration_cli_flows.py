@@ -120,6 +120,44 @@ class CliIntegrationTests(unittest.TestCase):
         self.assertEqual(payload["build_tool"], "maven")
         self.assertIn("jlink runtime", [feature["name"] for feature in payload["features"]])
 
+    def test_golden_maven_and_gradle_paths_cover_core_generation_flows(self) -> None:
+        for fixture_name, expected_build_tool in (("maven-only", "maven"), ("gradle-only", "gradle")):
+            with self.subTest(fixture=fixture_name):
+                td, project = self._workspace_from_fixture(fixture_name)
+                self.addCleanup(td.cleanup)
+
+                stdout = StringIO()
+                with redirect_stdout(stdout):
+                    code = main(["inspect", "--project-root", str(project), "--format", "json"])
+                self.assertEqual(code, 0)
+                payload = json.loads(stdout.getvalue())
+                self.assertEqual(payload["build_tool"], expected_build_tool)
+
+                self.assertEqual(
+                    main(["dockerfile", "generate", "--project-root", str(project), "--output", "Dockerfile.generated"]),
+                    0,
+                )
+                generated = (project / "Dockerfile.generated").read_text(encoding="utf-8")
+                self.assertIn(f"# Java 25 | build-tool: {expected_build_tool}", generated)
+                self.assertIn("FROM --platform=$BUILDPLATFORM", generated)
+                self.assertIn("ENTRYPOINT [\"java\"", generated)
+
+                self.assertEqual(main(["benchmark", "generate", "--project-root", str(project)]), 0)
+                self.assertTrue(
+                    (project / "benchmarks" / "03-custom-jre-jlink" / "variants" / "with-jlink-runtime" / "Dockerfile").exists()
+                )
+                distroless = (
+                    project
+                    / "benchmarks"
+                    / "06-base-image-choice"
+                    / "variants"
+                    / "distroless-nonroot"
+                    / "Dockerfile"
+                )
+                self.assertTrue(distroless.exists())
+                self.assertIn("gcr.io/distroless", distroless.read_text(encoding="utf-8"))
+                self.assertTrue((project / "benchmarks" / "07-native-vs-jvm" / "results" / "raw.csv").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
