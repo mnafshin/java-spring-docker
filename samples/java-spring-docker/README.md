@@ -24,3 +24,6 @@ cd /path/to/your-repo/samples/java-spring-docker
 - `benchmarks/common/README.md`
 - `tools/README.md`
 
+## Kubernetes sample
+
+See `k8s/kustomization.yaml` for the sample Deployment/Service overlay used in the Kubernetes support docs.

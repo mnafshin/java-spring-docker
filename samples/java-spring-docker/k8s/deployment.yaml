@@ -115,20 +115,3 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: demo-java-spring-docker
-spec:
-  selector:
-    app: demo-java-spring-docker
-  ports:
-    - name: http
-      port: 80
-      targetPort: http
-    - name: management             # internal only – not exposed via Ingress
-      port: 8081
-      targetPort: management
-

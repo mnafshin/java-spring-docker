@@ -108,6 +108,7 @@ This repository currently targets:
 - `docs/distribution.md`
 - `docs/compatibility-matrix.md`
 - `docs/security-hardening.md`
+- `docs/kubernetes.md`
 - `docs/multiarch.md`
 - `docs/onboarding.md`
 - `docs/jvm-optimization.md`
@@ -127,6 +128,7 @@ This repository currently targets:
 
 - `samples/java-spring-docker/README.md`
 - `samples/java-spring-docker/HELP.md`
+- `samples/java-spring-docker/k8s/kustomization.yaml`
 - `samples/java-spring-docker/tools/README.md`
 
 ## Contributing
