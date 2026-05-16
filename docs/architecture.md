@@ -9,6 +9,7 @@ flowchart TD
   user[User] --> cli[cli.py]
   cli --> config[config.py]
   cli --> commands[commands.py]
+  commands --> services[services/*_service.py]
   commands --> detect[project_detect.py]
   commands --> dockerfile[dockerfile.py]
   commands --> analyze[analyze.py]
@@ -23,7 +24,8 @@ flowchart TD
 | Module | Responsibility |
 |---|---|
 | `src/springdocker/cli.py` | Parse CLI arguments and dispatch commands. |
-| `src/springdocker/commands.py` | Orchestrate command execution and I/O. |
+| `src/springdocker/commands.py` | Thin command handlers for CLI output and exit-code mapping. |
+| `src/springdocker/services/` | Command service layer for Dockerfile, benchmark, and project orchestration logic. |
 | `src/springdocker/config.py` | Load `.springdocker.toml` and resolve command settings. |
 | `src/springdocker/project_detect.py` | Detect Maven/Gradle markers and Spring Boot hints. |
 | `src/springdocker/dockerfile.py` | Render Dockerfiles from structured options. |
@@ -35,8 +37,8 @@ flowchart TD
 1. `cli.py` builds the parser.
 2. `main()` resolves the project root and loads config when needed.
 3. A resolver in `config.py` merges CLI flags, config files, and defaults.
-4. `commands.py` validates the project and performs the work.
-5. Supporting modules write files, render Dockerfiles, or analyze CSV output.
+4. `commands.py` delegates command logic to service-layer modules.
+5. Service modules call supporting helpers to write files, render Dockerfiles, or analyze CSV output.
 
 ## Configuration resolution
 

@@ -2,27 +2,17 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
 from typing import cast
 
-from .analyze import format_json, format_table, summarize_csv
 from .benchmarks.generate import generate_benchmark_assets
 from .benchmarks.runner import run_benchmarks
-from .compare import compare_summaries, format_delta_json, format_delta_table
-from .config import render_default_config, write_default_config
-from .dockerfile import DockerfileOptions, build_dockerfile, explain_dockerfile_text
 from .errors import EXIT_FAILURE, EXIT_OK, EXIT_USAGE, print_error, print_warning
-from .project_detect import inspect_project, inspect_project_details
-from .regression import (
-    RegressionViolation,
-    detect_regressions,
-    format_regression_json,
-    format_regression_table,
-    load_summaries,
-)
+from .project_detect import inspect_project
+from .regression import format_regression_json, format_regression_table
+from .services import benchmark_service, dockerfile_service, project_service
 
 
 def run_checked(command: list[str], cwd: Path) -> int:
@@ -33,7 +23,7 @@ def run_checked(command: list[str], cwd: Path) -> int:
 
 def cmd_doctor(project_root: Path, build_tool: str | None) -> int:
     try:
-        info = inspect_project(project_root, build_tool)
+        info = project_service.load_project_info(project_root, build_tool)
     except ValueError as exc:
         print_error(str(exc))
         return EXIT_USAGE
@@ -67,7 +57,7 @@ def _render_inspect_table(info) -> str:
 
 def cmd_inspect(project_root: Path, build_tool: str | None, output_format: str) -> int:
     try:
-        info = inspect_project_details(project_root, build_tool)
+        info = project_service.load_project_details(project_root, build_tool)
     except ValueError as exc:
         print_error(str(exc))
         return EXIT_USAGE
@@ -120,41 +110,29 @@ def cmd_benchmark_compare(
     output_format: str,
     scenario: str | None,
 ) -> int:
-    csv_path = Path(raw_csv)
-    if not csv_path.is_absolute():
-        csv_path = project_root / csv_path
-    if not csv_path.exists():
-        print_error(f"missing CSV file: {csv_path}")
-        return EXIT_USAGE
-
     try:
-        summaries = summarize_csv(csv_path, scenario=scenario)
-        deltas = compare_summaries(baseline_variant, summaries)
+        rendered = benchmark_service.render_comparison(
+            project_root=project_root,
+            raw_csv=raw_csv,
+            baseline_variant=baseline_variant,
+            output_format=output_format,
+            scenario=scenario,
+        )
     except ValueError as exc:
         print_error(str(exc))
         return EXIT_USAGE
 
-    rendered = format_delta_json(deltas) if output_format == "json" else format_delta_table(deltas)
     print(rendered)
     return EXIT_OK
 
 
 def cmd_explain(project_root: Path, dockerfile_path: str, output_format: str) -> int:
-    path = Path(dockerfile_path)
-    if not path.is_absolute():
-        path = project_root / path
-    if not path.exists():
-        print_error(f"missing Dockerfile: {path}")
-        return EXIT_USAGE
-
     try:
-        payload = explain_dockerfile_text(path.read_text(encoding="utf-8"))
+        payload = dockerfile_service.explain_dockerfile(project_root, dockerfile_path)
     except ValueError as exc:
         print_error(str(exc))
         return EXIT_USAGE
 
-    payload = dict(payload)
-    payload["path"] = str(path)
     if output_format == "json":
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
@@ -171,21 +149,25 @@ def cmd_init(
     print_only: bool,
 ) -> int:
     try:
-        info = inspect_project(project_root, build_tool)
+        result = project_service.prepare_default_config(
+            project_root=project_root,
+            build_tool=build_tool,
+            config_path=config_path,
+            profile=profile,
+            force=force,
+            print_only=print_only,
+        )
     except ValueError as exc:
         print_error(str(exc))
         return EXIT_USAGE
-
-    if print_only:
-        print(render_default_config(build_tool=info.build_tool, profile=profile))
-        return EXIT_OK
-
-    try:
-        write_default_config(path=config_path, build_tool=info.build_tool, profile=profile, force=force)
     except FileExistsError as exc:
         print_error(str(exc))
         print("hint: rerun with --force to overwrite", file=sys.stderr)
         return EXIT_USAGE
+
+    if result.rendered is not None:
+        print(result.rendered)
+        return EXIT_OK
 
     print(f"wrote config: {config_path}")
     print("next: springdocker benchmark run")
@@ -230,45 +212,17 @@ def cmd_dockerfile_generate(
         cmd.extend(extra_args)
         return run_checked(cmd, project_root)
 
-    must_have_modules: tuple[str, ...] = ()
-    if must_have_modules_file:
-        modules_path = Path(must_have_modules_file)
-        if not modules_path.is_absolute():
-            modules_path = project_root / modules_path
-        if not modules_path.exists():
-            print_error(f"missing must-have modules file: {modules_path}")
-            return EXIT_USAGE
-        parsed: list[str] = []
-        seen: set[str] = set()
-        for line in modules_path.read_text(encoding="utf-8").splitlines():
-            entry = line.split("#", 1)[0].strip()
-            if not entry:
-                continue
-            for token in [part.strip() for part in entry.split(",")]:
-                if not token:
-                    continue
-                if not re.fullmatch(r"[A-Za-z0-9._-]+", token):
-                    print_error(f"invalid module name in {modules_path}: {token}")
-                    return EXIT_USAGE
-                if token not in seen:
-                    parsed.append(token)
-                    seen.add(token)
-        must_have_modules = tuple(parsed)
-
-    destination = Path(output)
-    if not destination.is_absolute():
-        destination = project_root / destination
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_text(
-        build_dockerfile(
-            DockerfileOptions(
-                build_tool=info.build_tool,
-                java_version=java_version,
-                must_have_modules=must_have_modules,
-            )
-        ),
-        encoding="utf-8",
-    )
+    try:
+        destination = dockerfile_service.generate_dockerfile(
+            project_root=project_root,
+            output_path=output,
+            build_tool=info.build_tool,
+            java_version=java_version,
+            must_have_modules_file=must_have_modules_file,
+        )
+    except ValueError as exc:
+        print_error(str(exc))
+        return EXIT_USAGE
     print(f"wrote dockerfile: {destination}")
     return EXIT_OK
 
@@ -325,8 +279,16 @@ def cmd_benchmark_run(
         print_error(str(exc))
         return EXIT_USAGE
 
-    if use_legacy_scripts and any([cpuset_cpus, memory_limit, warmup_runs > 0, normalized_runtime]):
-        print_error("benchmark reproducibility controls require the internal benchmark runner")
+    try:
+        benchmark_service.validate_reproducibility_with_legacy(
+            use_legacy_scripts=use_legacy_scripts,
+            cpuset_cpus=cpuset_cpus,
+            memory_limit=memory_limit,
+            warmup_runs=warmup_runs,
+            normalized_runtime=normalized_runtime,
+        )
+    except ValueError as exc:
+        print_error(str(exc))
         return EXIT_USAGE
 
     if _use_legacy_scripts(use_legacy_scripts):
@@ -369,77 +331,53 @@ def cmd_benchmark_analyze(
     baseline_path: str | None,
     fail_on_regression_above: float | None,
 ) -> int:
-    csv_path = Path(raw_csv)
-    if not csv_path.is_absolute():
-        csv_path = project_root / csv_path
-    if not csv_path.exists():
-        print_error(f"missing CSV file: {csv_path}")
-        return EXIT_USAGE
-
-    if fail_on_success_rate_below is not None and (
-        fail_on_success_rate_below < 0.0 or fail_on_success_rate_below > 100.0
-    ):
-        print_error("--fail-on-success-rate-below must be between 0 and 100")
-        return EXIT_USAGE
-
     try:
-        summaries = summarize_csv(csv_path, scenario=scenario, variant=variant)
+        outcome = benchmark_service.analyze_csv(
+            project_root=project_root,
+            raw_csv=raw_csv,
+            output_format=output_format,
+            scenario=scenario,
+            variant=variant,
+            output_path=output_path,
+            fail_on_success_rate_below=fail_on_success_rate_below,
+            baseline_path=baseline_path,
+            fail_on_regression_above=fail_on_regression_above,
+        )
     except ValueError as exc:
         print_error(str(exc))
         return EXIT_USAGE
 
-    if not summaries:
-        print("No rows matched the provided filters.")
+    if outcome.rendered == "No rows matched the provided filters.":
+        print(outcome.rendered)
         return EXIT_OK
 
-    rendered = format_json(summaries) if output_format == "json" else format_table(summaries)
-    if output_path:
-        destination = Path(output_path)
-        if not destination.is_absolute():
-            destination = project_root / destination
+    if outcome.output_destination is not None:
+        destination = outcome.output_destination
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(rendered + "\n", encoding="utf-8")
+        destination.write_text(outcome.rendered + "\n", encoding="utf-8")
         print(f"wrote analysis: {destination}")
     else:
-        print(rendered)
+        print(outcome.rendered)
 
-    if fail_on_success_rate_below is not None:
-        violations = [s for s in summaries if s.success_rate_pct < fail_on_success_rate_below]
-        if violations:
-            for summary in violations:
-                print_error(
-                    f"success_rate below threshold for {summary.scenario}/{summary.variant}: "
-                    f"{summary.success_rate_pct:.1f}% < {fail_on_success_rate_below:.1f}%"
-                )
-            return EXIT_FAILURE
+    if outcome.success_rate_violations:
+        for violation in outcome.success_rate_violations:
+            print_error(violation)
+        return EXIT_FAILURE
 
-    if baseline_path is not None:
-        baseline_file = Path(baseline_path)
-        if not baseline_file.is_absolute():
-            baseline_file = project_root / baseline_file
-        if not baseline_file.exists():
-            print_warning(f"baseline report not found; skipping regression check: {baseline_file}")
-            return EXIT_OK
-        try:
-            baseline_summaries = load_summaries(baseline_file)
-            regression_violations: list[RegressionViolation] = detect_regressions(
-                baseline=baseline_summaries,
-                current=summaries,
-                threshold_pct=fail_on_regression_above or 20.0,
-            )
-        except ValueError as exc:
-            print_error(str(exc))
-            return EXIT_USAGE
-        if regression_violations:
-            rendered_violations = (
-                format_regression_json(regression_violations)
-                if output_format == "json"
-                else format_regression_table(regression_violations)
-            )
-            print(rendered_violations)
-            print_error(
-                f"regressions above {fail_on_regression_above or 20.0:.1f}% detected against {baseline_file}"
-            )
-            return EXIT_FAILURE
+    if outcome.baseline_missing is not None:
+        print_warning(f"baseline report not found; skipping regression check: {outcome.baseline_missing}")
+        return EXIT_OK
+
+    if outcome.regression_violations:
+        rendered_violations = (
+            format_regression_json(list(outcome.regression_violations))
+            if output_format == "json"
+            else format_regression_table(list(outcome.regression_violations))
+        )
+        print(rendered_violations)
+        print_error(
+            f"regressions above {outcome.regression_threshold_pct:.1f}% detected against {outcome.baseline_path_used}"
+        )
+        return EXIT_FAILURE
 
     return EXIT_OK
