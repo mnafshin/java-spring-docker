@@ -41,8 +41,8 @@ jobs:
         run: |
           springdocker benchmark analyze \
             --project-root samples/java-spring-docker \
-            benchmarks/09-base-image-choice/results/raw.csv \
-            --baseline benchmarks/09-base-image-choice/results/baseline.json \
+            benchmarks/06-base-image-choice/results/raw.csv \
+            --baseline benchmarks/06-base-image-choice/results/baseline.json \
             --fail-on-regression-above 20
 
   supply-chain:
