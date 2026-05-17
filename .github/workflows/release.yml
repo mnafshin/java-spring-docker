@@ -54,10 +54,12 @@ jobs:
       - name: Sign release artifacts (keyless)
         shell: bash
         run: |
+          mkdir -p signatures
           for artifact in dist/*; do
+            name="$(basename "$artifact")"
             cosign sign-blob --yes \
-              --output-signature "${artifact}.sig" \
-              --output-certificate "${artifact}.pem" \
+              --output-signature "signatures/${name}.sig" \
+              --output-certificate "signatures/${name}.pem" \
               "${artifact}"
           done
 
@@ -72,8 +74,8 @@ jobs:
           name: release-signed-artifacts
           path: |
             dist/*
-            dist/*.sig
-            dist/*.pem
+            signatures/*.sig
+            signatures/*.pem
 
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
