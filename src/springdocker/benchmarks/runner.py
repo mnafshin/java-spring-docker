@@ -11,7 +11,12 @@ from pathlib import Path
 
 import requests
 
-from springdocker.benchmarks.generate import EXPECTED_CSV_HEADER, default_scenarios
+from springdocker.benchmarks.generate import (
+    EXPECTED_CSV_HEADER,
+    NativeScenarioDefinition,
+    StandardScenarioDefinition,
+    default_scenarios,
+)
 
 
 @dataclass(frozen=True)
@@ -317,12 +322,14 @@ def run_benchmarks(
 
     work_items: list[tuple[int, Path, int]] = []
     for scenario_index, scenario in enumerate(scenarios):
-        if scenario.scenario_type == "native":
+        if isinstance(scenario, NativeScenarioDefinition):
             if options.skip_native:
                 print(f"Skipping native scenario: {scenario.id}")
                 continue
             print(f"Skipping native scenario in internal runner: {scenario.id}")
             continue
+        if not isinstance(scenario, StandardScenarioDefinition):  # pragma: no cover - defensive guard for future extensions
+            raise TypeError(f"unsupported scenario definition: {type(scenario)}")
         scenario_dir = project_root / "benchmarks" / scenario.id
         if not (scenario_dir / "variants").exists():
             print(f"Skipping missing scenario directory: {scenario.id}")

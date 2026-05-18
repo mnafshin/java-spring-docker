@@ -14,36 +14,48 @@ EXPECTED_CSV_HEADER = (
 @dataclass(frozen=True)
 class ScenarioDefinition:
     id: str
+
+
+@dataclass(frozen=True)
+class StandardScenarioDefinition(ScenarioDefinition):
     variants: tuple[tuple[str, DockerfileOptions], ...]
     run_overrides: dict[str, int] | None = None
-    scenario_type: str = "standard"
+
+    def __post_init__(self) -> None:
+        if not self.variants:
+            raise ValueError("standard scenario must define at least one variant")
+
+
+@dataclass(frozen=True)
+class NativeScenarioDefinition(ScenarioDefinition):
+    pass
 
 
 def default_scenarios(build_tool: str, java_version: int) -> list[ScenarioDefinition]:
     base = DockerfileOptions(build_tool=build_tool, java_version=java_version)
     return [
-        ScenarioDefinition(
+        StandardScenarioDefinition(
             id="01-multi-stage-build-structure",
             variants=(
                 ("specialized-multi-stage", base),
                 ("simple-two-stage", DockerfileOptions(build_tool=build_tool, java_version=java_version, use_buildkit_cache=False)),
             ),
         ),
-        ScenarioDefinition(
+        StandardScenarioDefinition(
             id="02-buildkit-gradle-cache",
             variants=(
                 ("with-buildkit-cache", base),
                 ("without-buildkit-cache", DockerfileOptions(build_tool=build_tool, java_version=java_version, use_buildkit_cache=False)),
             ),
         ),
-        ScenarioDefinition(
+        StandardScenarioDefinition(
             id="03-custom-jre-jlink",
             variants=(
                 ("with-jlink-runtime", base),
                 ("without-jlink-runtime", DockerfileOptions(build_tool=build_tool, java_version=java_version, use_jlink=False)),
             ),
         ),
-        ScenarioDefinition(
+        StandardScenarioDefinition(
             id="04-jep483-aot-cache",
             variants=(
                 ("with-aot-cache", base),
@@ -51,14 +63,14 @@ def default_scenarios(build_tool: str, java_version: int) -> list[ScenarioDefini
             ),
             run_overrides={"quick": 8, "full": 15},
         ),
-        ScenarioDefinition(
+        StandardScenarioDefinition(
             id="05-jvm-container-flags",
             variants=(
                 ("tuned-flags", base),
                 ("defaults-like", DockerfileOptions(build_tool=build_tool, java_version=java_version, tuned_jvm_flags=False)),
             ),
         ),
-        ScenarioDefinition(
+        StandardScenarioDefinition(
             id="06-base-image-choice",
             variants=(
                 ("temurin-jre", DockerfileOptions(build_tool=build_tool, java_version=java_version, use_jlink=False)),
@@ -73,11 +85,7 @@ def default_scenarios(build_tool: str, java_version: int) -> list[ScenarioDefini
                 ),
             ),
         ),
-        ScenarioDefinition(
-            id="07-native-vs-jvm",
-            variants=(),
-            scenario_type="native",
-        ),
+        NativeScenarioDefinition(id="07-native-vs-jvm"),
     ]
 
 
@@ -93,11 +101,15 @@ def generate_benchmark_assets(project_root: Path, build_tool: str, java_version:
         variants_dir.mkdir(parents=True, exist_ok=True)
         results_dir.mkdir(parents=True, exist_ok=True)
 
-        if scenario.scenario_type == "standard":
+        if isinstance(scenario, StandardScenarioDefinition):
             for name, opts in scenario.variants:
                 variant_dir = variants_dir / name
                 variant_dir.mkdir(parents=True, exist_ok=True)
                 (variant_dir / "Dockerfile").write_text(build_dockerfile(opts), encoding="utf-8")
+        elif isinstance(scenario, NativeScenarioDefinition):
+            pass
+        else:  # pragma: no cover - defensive guard for future extensions
+            raise TypeError(f"unsupported scenario definition: {type(scenario)}")
 
         csv = results_dir / "raw.csv"
         if not csv.exists():
