@@ -36,6 +36,7 @@ class DockerfileOptions:
     include_stopsignal: bool = True
     include_embedded_sbom: bool = True
     include_reproducible_controls: bool = True
+    use_layered_jar: bool = True
 
 
 @dataclass(frozen=True)
@@ -138,6 +139,9 @@ def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
             "WORKDIR /app",
             *setup,
             build_step,
+            f"RUN java -Djarmode=layertools -jar /app/{jar_path} extract --destination /layers"
+            if options.use_layered_jar
+            else "",
             (
                 "RUN install -d /tmp/sbom && "
                 "printf '{\"spdxVersion\":\"SPDX-2.3\",\"name\":\"springdocker-generated-image\"}' > /tmp/sbom/spdx.json"
@@ -178,10 +182,20 @@ def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
             f"FROM --platform=$TARGETPLATFORM {runtime_base}",
             "WORKDIR /app",
             "VOLUME /tmp",
-            f"COPY --from=build /app/{jar_path} app.jar",
             "EXPOSE 8080",
             "EXPOSE 8081",
         ]
+        if options.use_layered_jar:
+            distroless_lines.extend(
+                [
+                    "COPY --from=build /layers/dependencies/ ./",
+                    "COPY --from=build /layers/spring-boot-loader/ ./",
+                    "COPY --from=build /layers/snapshot-dependencies/ ./",
+                    "COPY --from=build /layers/application/ ./",
+                ]
+            )
+        else:
+            distroless_lines.append(f"COPY --from=build /app/{jar_path} app.jar")
         if options.include_oci_labels:
             distroless_lines.extend(
                 [
@@ -225,11 +239,22 @@ def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
             [
                 "WORKDIR /app",
                 "VOLUME /tmp",
-                f"COPY --from=build {'--chown=1001:1001 ' if options.non_root else ''}/app/{jar_path} app.jar",
                 "EXPOSE 8080",
                 "EXPOSE 8081",
             ]
         )
+        if options.use_layered_jar:
+            chown_flag = "--chown=1001:1001 " if options.non_root else ""
+            temurin_lines.extend(
+                [
+                    f"COPY --from=build {chown_flag}/layers/dependencies/ ./",
+                    f"COPY --from=build {chown_flag}/layers/spring-boot-loader/ ./",
+                    f"COPY --from=build {chown_flag}/layers/snapshot-dependencies/ ./",
+                    f"COPY --from=build {chown_flag}/layers/application/ ./",
+                ]
+            )
+        else:
+            temurin_lines.append(f"COPY --from=build {'--chown=1001:1001 ' if options.non_root else ''}/app/{jar_path} app.jar")
         if options.include_oci_labels:
             temurin_lines.extend(
                 [
@@ -259,7 +284,7 @@ def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
             )
         )
 
-    entrypoint = ["java", *jvm_args, "-jar", "app.jar"]
+    entrypoint = ["java", *jvm_args, "org.springframework.boot.loader.launch.JarLauncher"] if options.use_layered_jar else ["java", *jvm_args, "-jar", "app.jar"]
     tail_lines: list[str] = []
     if options.non_root and options.runtime_image != "distroless":
         tail_lines.append("USER 1001")
@@ -358,6 +383,14 @@ def explain_dockerfile_text(text: str) -> dict[str, object]:
                 "name": "tuned JVM flags",
                 "enabled": True,
                 "reason": "Applies container-friendly JVM memory and failure defaults.",
+            }
+        )
+    if "jarmode=layertools" in text and "/layers/application/" in text:
+        features.append(
+            {
+                "name": "layered jar",
+                "enabled": True,
+                "reason": "Extracts Spring Boot layers for better image cache reuse.",
             }
         )
 

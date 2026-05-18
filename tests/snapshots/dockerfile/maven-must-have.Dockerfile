@@ -18,6 +18,7 @@ COPY .mvn ./.mvn
 RUN chmod +x mvnw
 COPY src ./src
 RUN --mount=type=cache,sharing=locked,target=/root/.m2 ./mvnw -B -q package -DskipTests
+RUN java -Djarmode=layertools -jar /app/target/*.jar extract --destination /layers
 RUN install -d /tmp/sbom && printf '{"spdxVersion":"SPDX-2.3","name":"springdocker-generated-image"}' > /tmp/sbom/spdx.json
 
 FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk@sha256:c2b7ea21649875fb9052237ac4e3cd4ef63968a2a389a0a1b1a72a5e53e5c93f AS jre-builder
@@ -35,9 +36,12 @@ RUN groupadd --system --gid 1001 javauser && useradd --system --uid 1001 --gid 1
 RUN install -d -o 1001 -g 1001 -m 755 /app && install -d -o 1001 -g 1001 -m 1777 /tmp
 WORKDIR /app
 VOLUME /tmp
-COPY --from=build --chown=1001:1001 /app/target/*.jar app.jar
 EXPOSE 8080
 EXPOSE 8081
+COPY --from=build --chown=1001:1001 /layers/dependencies/ ./
+COPY --from=build --chown=1001:1001 /layers/spring-boot-loader/ ./
+COPY --from=build --chown=1001:1001 /layers/snapshot-dependencies/ ./
+COPY --from=build --chown=1001:1001 /layers/application/ ./
 LABEL org.opencontainers.image.source="${OCI_SOURCE}" \
       org.opencontainers.image.revision="${OCI_REVISION}" \
       org.opencontainers.image.created="${OCI_CREATED}"
@@ -48,5 +52,5 @@ ENV JAVA_HOME=/opt/java
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 USER 1001
 STOPSIGNAL SIGTERM
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-XX:+ExitOnOutOfMemoryError", "-Djava.io.tmpdir=/tmp", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-XX:+ExitOnOutOfMemoryError", "-Djava.io.tmpdir=/tmp", "org.springframework.boot.loader.launch.JarLauncher"]
 # Runtime hardening tip: run with --read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs /tmp

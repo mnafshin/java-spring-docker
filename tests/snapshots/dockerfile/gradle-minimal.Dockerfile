@@ -15,20 +15,24 @@ COPY gradle ./gradle
 RUN chmod +x gradlew
 COPY src ./src
 RUN ./gradlew --no-daemon bootJar -x test
+RUN java -Djarmode=layertools -jar /app/build/libs/*-SNAPSHOT.jar extract --destination /layers
 RUN install -d /tmp/sbom && printf '{"spdxVersion":"SPDX-2.3","name":"springdocker-generated-image"}' > /tmp/sbom/spdx.json
 
 FROM --platform=$TARGETPLATFORM eclipse-temurin:21-jre@sha256:010e0a06bd4e0184dec58626afb3ba727b42c56c91b977e2f0a9e0837e0fa3fb
 RUN install -d -m 755 /app && install -d -m 1777 /tmp
 WORKDIR /app
 VOLUME /tmp
-COPY --from=build /app/build/libs/*-SNAPSHOT.jar app.jar
 EXPOSE 8080
 EXPOSE 8081
+COPY --from=build /layers/dependencies/ ./
+COPY --from=build /layers/spring-boot-loader/ ./
+COPY --from=build /layers/snapshot-dependencies/ ./
+COPY --from=build /layers/application/ ./
 LABEL org.opencontainers.image.source="${OCI_SOURCE}" \
       org.opencontainers.image.revision="${OCI_REVISION}" \
       org.opencontainers.image.created="${OCI_CREATED}"
 COPY --from=build /tmp/sbom/spdx.json /usr/share/sbom/spdx.json
 ENV SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH}"
 STOPSIGNAL SIGTERM
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
 # Runtime hardening tip: run with --read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs /tmp
