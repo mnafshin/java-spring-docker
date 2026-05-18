@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>springdocker — Production Dockerfiles for Spring Boot, Without the Guesswork</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" id="theme" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --accent: #6cf0c2;
+      --accent-2: #ffb86b;
+      --accent-3: #ff6b9d;
+      --danger: #ff5d6e;
+      --ink: #e8eef5;
+      --muted: #8a99ad;
+      --panel: rgba(255,255,255,0.04);
+      --panel-strong: rgba(255,255,255,0.08);
+      --border: rgba(255,255,255,0.10);
+    }
+
+    .reveal { font-family: 'Inter', system-ui, sans-serif; color: var(--ink); }
+    .reveal .slides { text-align: left; }
+    .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+      font-family: 'Inter', sans-serif; font-weight: 800;
+      color: var(--ink); text-transform: none; letter-spacing: -0.02em;
+    }
+    .reveal h1 { font-size: 3.2em; line-height: 1.05; }
+    .reveal h2 { font-size: 2.0em; line-height: 1.1; }
+    .reveal h3 { font-size: 1.3em; color: var(--accent); }
+    .reveal p, .reveal li { font-size: 0.85em; line-height: 1.5; color: var(--ink); }
+    .reveal small, .reveal .muted { color: var(--muted); font-size: 0.7em; }
+    .reveal code { font-family: 'JetBrains Mono', monospace; color: var(--accent); background: var(--panel); padding: 0.05em 0.35em; border-radius: 4px; }
+    .reveal pre { box-shadow: none; width: 100%; margin: 0.5em 0; }
+    .reveal pre code { font-size: 0.55em; line-height: 1.45; padding: 1.1em 1.3em; border-radius: 10px; background: #11151c; border: 1px solid var(--border); }
+
+    body { background: #0a0d12; }
+    .reveal { background: radial-gradient(circle at 20% 0%, #14201f 0%, #0a0d12 50%) fixed; }
+
+    .badge {
+      display: inline-block; padding: 0.25em 0.7em; border-radius: 999px;
+      background: var(--panel-strong); color: var(--accent); font-size: 0.55em;
+      letter-spacing: 0.18em; text-transform: uppercase; font-weight: 600;
+      border: 1px solid rgba(108,240,194,0.25); margin-bottom: 0.8em;
+    }
+    .badge.warn  { color: var(--accent-2); border-color: rgba(255,184,107,0.3); }
+    .badge.bad   { color: var(--danger);   border-color: rgba(255,93,110,0.3); }
+    .badge.pink  { color: var(--accent-3); border-color: rgba(255,107,157,0.3); }
+
+    .grid { display: grid; gap: 1.1em; }
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+    .card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.1em 1.2em;
+    }
+    .card h4 { color: var(--accent); font-size: 0.9em; margin: 0 0 0.4em 0; }
+    .card.danger h4 { color: var(--danger); }
+    .card.warn h4   { color: var(--accent-2); }
+    .card.pink h4   { color: var(--accent-3); }
+    .card p, .card li { font-size: 0.65em; color: var(--ink); margin: 0.2em 0; }
+    .card small { font-size: 0.55em; }
+
+    .stat {
+      background: linear-gradient(180deg, rgba(108,240,194,0.10), rgba(108,240,194,0.02));
+      border: 1px solid rgba(108,240,194,0.25); border-radius: 14px;
+      padding: 1.0em 1.1em; text-align: center;
+    }
+    .stat .num {
+      font-family: 'JetBrains Mono', monospace; font-size: 2.3em; font-weight: 700;
+      color: var(--accent); line-height: 1; display: block; margin-bottom: 0.2em;
+    }
+    .stat.warn { background: linear-gradient(180deg, rgba(255,184,107,0.10), rgba(255,184,107,0.02)); border-color: rgba(255,184,107,0.25); }
+    .stat.warn .num { color: var(--accent-2); }
+    .stat.bad  { background: linear-gradient(180deg, rgba(255,93,110,0.10), rgba(255,93,110,0.02));  border-color: rgba(255,93,110,0.25); }
+    .stat.bad .num  { color: var(--danger); }
+    .stat .lbl { color: var(--muted); font-size: 0.55em; text-transform: uppercase; letter-spacing: 0.15em; }
+
+    .reveal table { border-collapse: collapse; width: 100%; font-size: 0.6em; }
+    .reveal table th, .reveal table td { border-bottom: 1px solid var(--border); padding: 0.55em 0.6em; }
+    .reveal table th { color: var(--accent); text-align: left; font-weight: 600; font-size: 0.95em; text-transform: uppercase; letter-spacing: 0.08em; }
+    .reveal table td.good { color: var(--accent); font-weight: 600; }
+    .reveal table td.bad  { color: var(--danger); }
+
+    .tagline { font-size: 1.05em; color: var(--muted); margin-top: 0.5em; max-width: 22ch; line-height: 1.4; }
+
+    .pill-row { display: flex; flex-wrap: wrap; gap: 0.4em; margin-top: 0.6em; }
+    .pill { padding: 0.25em 0.7em; border: 1px solid var(--border); border-radius: 999px; font-size: 0.55em; color: var(--muted); }
+
+    .bar-row { display: flex; align-items: center; gap: 0.6em; margin: 0.35em 0; font-size: 0.62em; }
+    .bar-row .label { flex: 0 0 9em; color: var(--muted); }
+    .bar-row .bar-wrap { flex: 1; background: var(--panel); border-radius: 6px; height: 18px; overflow: hidden; border: 1px solid var(--border); }
+    .bar-row .bar { height: 100%; background: linear-gradient(90deg, var(--accent), #4cb89a); }
+    .bar-row .bar.bad { background: linear-gradient(90deg, var(--danger), #b8404c); }
+    .bar-row .bar.warn { background: linear-gradient(90deg, var(--accent-2), #b8814c); }
+    .bar-row .val { flex: 0 0 6em; text-align: right; font-family: 'JetBrains Mono', monospace; color: var(--ink); font-weight: 600; }
+
+    .hero-mark {
+      font-family: 'JetBrains Mono', monospace; color: var(--accent);
+      font-size: 0.85em; letter-spacing: 0.05em;
+    }
+    .hero-title { font-size: 4.2em; line-height: 0.98; font-weight: 800; letter-spacing: -0.035em; }
+    .hero-title em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.0em; color: var(--muted); max-width: 32ch; margin-top: 0.6em; }
+
+    .step-list { counter-reset: step; list-style: none; padding: 0; }
+    .step-list li { counter-increment: step; padding: 0.7em 0 0.7em 3.3em; position: relative; border-bottom: 1px dashed var(--border); }
+    .step-list li:last-child { border: 0; }
+    .step-list li::before {
+      content: counter(step); position: absolute; left: 0; top: 0.6em;
+      width: 2.4em; height: 2.4em; border-radius: 50%;
+      background: var(--panel-strong); border: 1px solid rgba(108,240,194,0.4);
+      color: var(--accent); display: grid; place-items: center;
+      font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.85em;
+    }
+
+    .strike { color: var(--muted); text-decoration: line-through; }
+    .accent { color: var(--accent); }
+    .accent-2 { color: var(--accent-2); }
+    .danger { color: var(--danger); }
+
+    .reveal .controls { color: var(--accent); }
+    .reveal .progress { color: var(--accent); height: 3px; }
+
+    .footer-note {
+      position: absolute; bottom: -1.0em; left: 0; right: 0;
+      text-align: center; font-size: 0.45em; color: var(--muted); letter-spacing: 0.12em;
+    }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================================================= -->
+      <!-- STACK 1: HOOK                                                  -->
+      <!-- ============================================================= -->
+      <section>
+        <!-- 1.1 Title -->
+        <section>
+          <div class="hero-mark">$ springdocker init</div>
+          <h1 class="hero-title">Stop <em>guessing</em>.<br/>Ship the Dockerfile<br/>your Spring Boot app <em>deserves</em>.</h1>
+          <p class="hero-sub">An opinionated, explainable, benchmark‑backed Dockerfile generator for the JVM.</p>
+          <div class="footer-note">PRESS → TO BEGIN</div>
+        </section>
+
+        <!-- 1.2 The Painful Truth -->
+        <section>
+          <span class="badge bad">The painful truth</span>
+          <h2>Your Dockerfile is probably wrong.</h2>
+          <div class="grid grid-3" style="margin-top: 1.2em;">
+            <div class="stat bad"><span class="num">Many</span><span class="lbl">Spring Boot images on Docker Hub run as root</span></div>
+            <div class="stat bad"><span class="num">Most</span><span class="lbl">Use mutable base image tags (no digest)</span></div>
+            <div class="stat bad"><span class="num">Many</span><span class="lbl">Ship without an embedded SBOM</span></div>
+          </div>
+          <p class="muted" style="margin-top: 1.0em;">Source: public image scan summary and benchmark evidence from the presentation deck.</p>
+        </section>
+
+        <!-- 1.3 The Three Bad Options -->
+        <section>
+          <span class="badge warn">Today's options, ranked by regret</span>
+          <h2>You pick your poison.</h2>
+          <div class="grid grid-3" style="margin-top: 1.0em;">
+            <div class="card danger">
+              <h4>1. Hand‑written</h4>
+              <p>Full control. Full responsibility. Drifts the moment you stop reading it.</p>
+              <small class="muted">usually many best‑practice gaps per Dockerfile</small>
+            </div>
+            <div class="card warn">
+              <h4>2. Buildpacks / Jib</h4>
+              <p>Zero config, opaque output. When something breaks, you can't see why.</p>
+              <small class="muted">no escape hatch · no Dockerfile to own</small>
+            </div>
+            <div class="card pink">
+              <h4>3. Copy‑paste from a blog</h4>
+              <p>Often outdated, with base images that no longer exist.</p>
+              <small class="muted">common in older blog copy‑paste snippets</small>
+            </div>
+          </div>
+        </section>
+
+        <!-- 1.4 We need a fourth option -->
+        <section data-background-gradient="linear-gradient(135deg,#0a0d12 0%, #14201f 100%)">
+          <span class="badge">There is a fourth option</span>
+          <h1 style="font-size: 3.0em; margin-top: 0.4em;">A Dockerfile you <span class="accent">own</span>,<br/>generated from <span class="accent">informed defaults</span>,<br/>and <span class="accent">verified continuously</span>.</h1>
+          <p class="muted" style="margin-top: 1.2em;">That's what we're building.</p>
+        </section>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- STACK 2: WHAT IS IT                                            -->
+      <!-- ============================================================= -->
+      <section>
+        <!-- 2.1 -->
+        <section>
+          <span class="badge">Meet the tool</span>
+          <h2><code style="font-size: 1em;">springdocker</code></h2>
+          <p class="tagline">Generate, explain, and verify production Spring Boot Dockerfiles.</p>
+          <div class="pill-row" style="margin-top: 1.2em;">
+            <span class="pill">⚡ One command</span>
+            <span class="pill">🧠 Opinionated recipes</span>
+            <span class="pill">🔬 Benchmark‑backed</span>
+            <span class="pill">🔍 Explains any Dockerfile</span>
+            <span class="pill">✅ Verifies before you ship</span>
+            <span class="pill">🪶 Tiny: pure Python, no daemon</span>
+          </div>
+        </section>
+
+        <!-- 2.2 Three verbs -->
+        <section>
+          <span class="badge">Three verbs. That's it.</span>
+          <h2>The entire product fits on a napkin.</h2>
+          <div class="grid grid-3" style="margin-top: 1.2em;">
+            <div class="card">
+              <h4>generate</h4>
+              <p>Pick a recipe. Get a Dockerfile and a managed <code>.dockerignore</code>.</p>
+              <small class="muted">$ springdocker dockerfile generate --recipe jvm-balanced</small>
+            </div>
+            <div class="card">
+              <h4>explain</h4>
+              <p>Annotate <em>any</em> Dockerfile — not just ours. Line by line. With reasoning.</p>
+              <small class="muted">$ springdocker explain ./Dockerfile</small>
+            </div>
+            <div class="card">
+              <h4>verify</h4>
+              <p>Lint · scan · layer audit · signature · SBOM · smoke run. One pass/fail.</p>
+              <small class="muted">$ springdocker verify ./Dockerfile</small>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2.3 How we say no -->
+        <section>
+          <span class="badge warn">What we deliberately don't do</span>
+          <h2>Small surface. Large value.</h2>
+          <div class="grid grid-2" style="margin-top: 1em;">
+            <div class="card">
+              <h4 class="accent">We ship</h4>
+              <ul>
+                <li>Dockerfile generation, explanation, verification</li>
+                <li>Spring Boot–aware project detection (Maven + Gradle + Kotlin DSL)</li>
+                <li>Reference benchmark dataset, regenerated on a controlled runner</li>
+                <li>A real plugin contract (6 extension points)</li>
+              </ul>
+            </div>
+            <div class="card warn">
+              <h4>We don't</h4>
+              <ul>
+                <li><span class="strike">Generate Kubernetes manifests</span> → use Helm</li>
+                <li><span class="strike">Ship observability code</span> → document otel‑javaagent</li>
+                <li><span class="strike">Own the native‑image story</span> → it's one recipe, GraalVM owns the rest</li>
+                <li><span class="strike">Replace your CI</span> → we plug into it</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- STACK 3: BEST PRACTICES + EVIDENCE                             -->
+      <!-- ============================================================= -->
+      <section>
+        <!-- 3.1 -->
+        <section>
+          <span class="badge pink">Best practices · with receipts</span>
+          <h2>Every default is defended by a number.</h2>
+          <p class="muted">No cargo‑culted flags. No vibes. Every choice in the generated Dockerfile is backed by a reference benchmark you can reproduce.</p>
+        </section>
+
+        <!-- 3.2 Image size -->
+        <section>
+          <span class="badge">Image size · Spring Boot 4 · Java 25</span>
+          <h3>Scenario evidence → final image size</h3>
+          <div style="margin-top: 1em;">
+            <div class="bar-row"><span class="label">without‑jlink</span><div class="bar-wrap"><div class="bar bad" style="width: 100%;"></div></div><span class="val">144.38 MB</span></div>
+            <div class="bar-row"><span class="label">temurin‑jre</span><div class="bar-wrap"><div class="bar warn" style="width: 91%;"></div></div><span class="val">131.37 MB</span></div>
+            <div class="bar-row"><span class="label">with‑jlink</span><div class="bar-wrap"><div class="bar" style="width: 70%;"></div></div><span class="val">100.40 MB</span></div>
+            <div class="bar-row"><span class="label">debian‑bookworm‑slim</span><div class="bar-wrap"><div class="bar" style="width: 61%;"></div></div><span class="val">87.64 MB</span></div>
+            <div class="bar-row"><span class="label">alpine</span><div class="bar-wrap"><div class="bar" style="width: 46%;"></div></div><span class="val">66.08 MB</span></div>
+            <div class="bar-row"><span class="label">native‑aot</span><div class="bar-wrap"><div class="bar" style="width: 39%;"></div></div><span class="val">55.7 MB</span></div>
+          </div>
+          <p class="muted" style="margin-top: 1em;">Values mirror the benchmark tables in <code>docs/presentation/index.html</code>.</p>
+        </section>
+
+        <!-- 3.3 Cold start -->
+        <section>
+          <span class="badge">Cold start · ready for traffic</span>
+          <h3>Time from <code>docker run</code> to <code>/actuator/health</code> = UP</h3>
+          <div style="margin-top: 1em;">
+            <div class="bar-row"><span class="label">JVM baseline</span><div class="bar-wrap"><div class="bar bad" style="width: 100%;"></div></div><span class="val">2,025 ms</span></div>
+            <div class="bar-row"><span class="label">debian‑bookworm‑slim</span><div class="bar-wrap"><div class="bar warn" style="width: 72%;"></div></div><span class="val">1,450 ms</span></div>
+            <div class="bar-row"><span class="label">with‑jlink</span><div class="bar-wrap"><div class="bar" style="width: 70%;"></div></div><span class="val">1,423 ms</span></div>
+            <div class="bar-row"><span class="label">with‑aot (avg)</span><div class="bar-wrap"><div class="bar" style="width: 71%;"></div></div><span class="val">1,429 ms</span></div>
+            <div class="bar-row"><span class="label">native‑aot</span><div class="bar-wrap"><div class="bar" style="width: 15%;"></div></div><span class="val">308 ms</span></div>
+          </div>
+          <p class="muted" style="margin-top: 1em;">Values mirror the benchmark tables in <code>docs/presentation/index.html</code>.</p>
+        </section>
+
+        <!-- 3.4 Layer cache hit -->
+        <section>
+          <span class="badge">Build cache · the silent productivity killer</span>
+          <h3>Rebuild after touching one Java file</h3>
+          <div class="grid grid-2" style="margin-top: 1em;">
+            <div class="stat bad"><span class="num">3,410 ms</span><span class="lbl">Without BuildKit cache</span></div>
+            <div class="stat"><span class="num">622 ms</span><span class="lbl">With BuildKit cache</span></div>
+          </div>
+          <p style="margin-top: 1.2em;">Build caching and layered outputs reduce rebuild time significantly in repeated CI runs.</p>
+        </section>
+
+        <!-- 3.5 Security -->
+        <section>
+          <span class="badge">Security · generated defaults and verify checks</span>
+          <h3>Current capabilities include:</h3>
+          <table>
+            <thead><tr><th>Control</th><th>springdocker default</th><th>Typical Dockerfile</th></tr></thead>
+            <tbody>
+              <tr><td>Runs as non‑root</td><td class="good">✓ non‑root user</td><td class="bad">✗ root</td></tr>
+              <tr><td>Base image pinned by digest</td><td class="good">✓ <code>@sha256:…</code></td><td class="bad">✗ floating tag</td></tr>
+              <tr><td>HEALTHCHECK support</td><td class="good">✓ Actuator-aware when applicable</td><td class="bad">✗ often missing</td></tr>
+              <tr><td>SBOM embedded in image</td><td class="good">✓ SPDX SBOM</td><td class="bad">✗ missing</td></tr>
+              <tr><td>OCI source/revision labels</td><td class="good">✓ supported via build args</td><td class="bad">✗ often missing</td></tr>
+              <tr><td>Signature verification</td><td class="good">✓ via <code>verify</code> when image is provided</td><td class="bad">✗ rarely integrated</td></tr>
+              <tr><td>Reproducible build</td><td class="good">✓ <code>SOURCE_DATE_EPOCH</code></td><td class="bad">✗ timestamp drift</td></tr>
+              <tr><td>Trivy HIGH+ scanning</td><td class="good">✓ available in <code>verify</code></td><td class="bad">often ad hoc</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- STACK 4: HOW IT FEELS                                          -->
+      <!-- ============================================================= -->
+      <section>
+        <!-- 4.1 -->
+        <section>
+          <span class="badge">The quick experience</span>
+          <h2>From <code>git clone</code> to a production image.</h2>
+          <ol class="step-list">
+            <li><strong>Inspect.</strong> <code>springdocker inspect</code> reads <code>pom.xml</code> / <code>build.gradle[.kts]</code> and reports compatibility signals.</li>
+            <li><strong>Initialize.</strong> <code>springdocker init</code> writes a starter <code>.springdocker.toml</code>.</li>
+            <li><strong>Generate.</strong> <code>springdocker dockerfile generate</code> writes a Dockerfile and ensures <code>.dockerignore</code>.</li>
+            <li><strong>Verify.</strong> <code>springdocker verify</code> runs built-in checks (and optional plugin checks) with pass/fail output.</li>
+            <li><strong>Benchmark.</strong> <code>springdocker benchmark generate/run/analyze</code> provides reproducible evidence for tuning decisions.</li>
+          </ol>
+        </section>
+
+        <!-- 4.2 The recipe -->
+        <section>
+          <span class="badge">Pick a recipe, not a long flag list</span>
+          <h3>A small set of recipes covers most Spring Boot deployments.</h3>
+          <table>
+            <thead><tr><th>Recipe</th><th>Best for</th><th>Image trend</th><th>Cold-start trend</th></tr></thead>
+            <tbody>
+              <tr><td><code>jvm-balanced</code></td><td>General-purpose default</td><td>balanced</td><td>balanced</td></tr>
+              <tr><td><code>spring-aot</code></td><td>AOT-optimized JVM startup</td><td>similar</td><td>faster startup-oriented</td></tr>
+              <tr><td><code>native-aot</code></td><td>Cold-start critical workloads</td><td>smallest</td><td>fastest</td></tr>
+            </tbody>
+          </table>
+          <p class="muted" style="margin-top: 1em;">Tune behavior via config and CLI options. Recipes can be extended through plugins.</p>
+        </section>
+
+        <!-- 4.3 The output -->
+        <section>
+          <span class="badge">What you get</span>
+          <h3>A Dockerfile you'd write — if you had three days and a security team.</h3>
+          <pre><code class="language-dockerfile" data-trim data-noescape>
+# springdocker · recipe: jvm-balanced · benchmark evidence included
+# Java 21 · Spring Boot 3.3 · build-tool: maven · layered-jar: true
+
+ARG BASE_BUILD=eclipse-temurin:21.0.5_11-jdk-jammy@sha256:7e2c…
+ARG BASE_RUN=gcr.io/distroless/java21-debian12:nonroot@sha256:c9a1…
+
+# ── build stage ─────────────────────────────────────────────────
+FROM --platform=$BUILDPLATFORM ${BASE_BUILD} AS build
+WORKDIR /app
+COPY --link pom.xml mvnw ./
+COPY --link .mvn ./.mvn
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -q dependency:go-offline
+COPY --link src ./src
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -q -DskipTests package spring-boot:process-aot
+RUN java -Djarmode=layertools -jar target/*.jar extract --destination /layers
+
+# ── AppCDS training run ─────────────────────────────────────────
+RUN java -XX:ArchiveClassesAtExit=/layers/app.jsa \
+         -Dspring.context.exit=onRefresh \
+         -cp /layers/application/BOOT-INF/classes:/layers/dependencies/BOOT-INF/lib/* \
+         org.springframework.boot.loader.JarLauncher || true
+
+# ── runtime stage ───────────────────────────────────────────────
+FROM ${BASE_RUN}
+LABEL org.opencontainers.image.source="$SOURCE" \
+      org.opencontainers.image.revision="$REVISION" \
+      org.opencontainers.image.created="$CREATED"
+ENV TZ=UTC LANG=C.UTF-8
+COPY --from=build --chown=nonroot:nonroot /layers/ /app/
+USER nonroot
+STOPSIGNAL SIGTERM
+EXPOSE 8080
+HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=3 \
+  CMD ["/busybox/wget","-qO-","http://localhost:8080/actuator/health/readiness"]
+ENTRYPOINT ["java","-XX:+UseZGC","-XX:+ZGenerational",\
+  "-XX:MaxRAMPercentage=75","-XX:+ExitOnOutOfMemoryError",\
+  "-XX:SharedArchiveFile=/app/app.jsa",\
+  "org.springframework.boot.loader.JarLauncher"]
+          </code></pre>
+        </section>
+
+        <!-- 4.4 Verify -->
+        <section>
+          <span class="badge">$ springdocker verify ./Dockerfile</span>
+          <h3>One command. Six gates. Pass or fail.</h3>
+          <pre><code class="language-bash" data-trim>
+✔ hadolint        no findings
+✔ trivy           no HIGH/CRITICAL findings
+✔ dive            layer efficiency above threshold
+✔ cosign          signature valid · sigstore keyless
+✔ sbom            SPDX embedded · component inventory licensed
+✔ smoke           container UP · /actuator/health = UP
+
+  springdocker verify — PASSED
+          </code></pre>
+          <p class="muted" style="margin-top: 0.8em;">Same command in your terminal and in CI. Fails the build when any gate fails. Outputs JUnit XML, SARIF, and JSON for tooling.</p>
+        </section>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- STACK 5: WHY THIS, WHY NOW                                     -->
+      <!-- ============================================================= -->
+      <section>
+        <!-- 5.1 -->
+        <section>
+          <span class="badge">Positioning</span>
+          <h2>Why not the other tools?</h2>
+          <table>
+            <thead><tr><th></th><th>Jib</th><th>Buildpacks</th><th>Hand‑rolled</th><th class="accent">springdocker</th></tr></thead>
+            <tbody>
+              <tr><td>Produces a real Dockerfile</td><td class="bad">✗</td><td class="bad">✗</td><td class="good">✓</td><td class="good">✓</td></tr>
+              <tr><td>Spring‑Boot aware</td><td>partial</td><td class="good">✓</td><td class="bad">✗</td><td class="good">✓</td></tr>
+              <tr><td>You can read & edit output</td><td class="bad">✗</td><td class="bad">✗</td><td class="good">✓</td><td class="good">✓</td></tr>
+              <tr><td>Verification pipeline included</td><td class="bad">✗</td><td>partial</td><td class="bad">✗</td><td class="good">✓</td></tr>
+              <tr><td>Explains <em>existing</em> Dockerfiles</td><td class="bad">✗</td><td class="bad">✗</td><td class="bad">✗</td><td class="good">✓</td></tr>
+              <tr><td>Evidence‑backed defaults</td><td class="bad">✗</td><td>partial</td><td class="bad">✗</td><td class="good">✓</td></tr>
+            </tbody>
+          </table>
+          <p class="muted" style="margin-top: 0.8em;">We're not replacing Jib. We're for teams who want to <em>see and own</em> their container layer.</p>
+        </section>
+
+        <!-- 5.2 Extensible -->
+        <section>
+          <span class="badge">Extensibility · real, not marketing</span>
+          <h3>Six plugin contracts. One reference plugin each.</h3>
+          <div class="grid grid-3" style="margin-top: 1em;">
+            <div class="card"><h4>recipe</h4><p>Add your own opinionated stack.</p></div>
+            <div class="card"><h4>project_detector</h4><p>Bazel? sbt? Roll your own.</p></div>
+            <div class="card"><h4>dockerfile_mutator</h4><p>Inject corporate CA, proxies, internal mirrors.</p></div>
+            <div class="card"><h4>verifier</h4><p>Add a policy gate (OPA, Kyverno, in‑house).</p></div>
+            <div class="card"><h4>verify_renderer</h4><p>Custom <code>verify --format</code> output for your tooling.</p></div>
+            <div class="card"><h4>command</h4><p>Your team's command, in the same CLI.</p></div>
+          </div>
+        </section>
+
+        <!-- 5.3 Acceptance -->
+        <section>
+          <span class="badge">When do we call it "professional"?</span>
+          <h3 style="margin-bottom: 0.35em;">All gates green, or it's still early-stage.</h3>
+          <ol style="columns: 2; column-gap: 1.8em; font-size: 0.62em; line-height: 1.25; margin-top: 0.2em;">
+            <li>One command → digest‑pinned, non‑root, healthcheck, SBOM, layered.</li>
+            <li><code>explain</code> works on any Dockerfile.</li>
+            <li><code>verify</code> covers lint, vuln, layer, signature.</li>
+            <li>README answers "why not Jib / Buildpacks" briefly and clearly.</li>
+            <li>CI green across major operating systems and supported Python versions.</li>
+            <li>High line coverage on dockerfile / commands / config.</li>
+            <li>Benchmark scenarios ship reference results JSON.</li>
+            <li>Plugin contract documented + reference plugin per type.</li>
+            <li>License, code of conduct, security policy, dependabot, CODEOWNERS.</li>
+            <li>No <code>docs/</code> page describes vapor.</li>
+          </ol>
+        </section>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- STACK 6: CLOSE                                                 -->
+      <!-- ============================================================= -->
+      <section>
+        <!-- 6.1 Recap -->
+        <section>
+          <span class="badge pink">In one slide</span>
+          <h2 style="margin-bottom: 0.25em;">The pitch.</h2>
+          <div class="grid grid-2" style="margin-top: 0.6em; gap: 0.7em;">
+            <div class="card" style="padding: 0.85em 0.95em;">
+              <h4>The problem</h4>
+              <p style="font-size: 0.58em; line-height: 1.3;">Many Spring Boot Dockerfiles are insecure, slow to rebuild, and poorly documented.</p>
+            </div>
+            <div class="card" style="padding: 0.85em 0.95em;">
+              <h4>The solution</h4>
+              <p style="font-size: 0.58em; line-height: 1.3;">Generate a Dockerfile you own, explain existing ones, and verify with one command.</p>
+            </div>
+            <div class="card pink" style="padding: 0.85em 0.95em;">
+              <h4>The bet</h4>
+              <p style="font-size: 0.58em; line-height: 1.3;">Teams want to <strong>see and own</strong> container decisions with safer defaults.</p>
+            </div>
+            <div class="card" style="padding: 0.85em 0.95em;">
+              <h4>The proof</h4>
+              <p style="font-size: 0.58em; line-height: 1.3;">Defaults are evidence-backed using reproducible benchmark scenarios and reports.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6.2 Call to action -->
+        <section data-background-gradient="radial-gradient(circle at 50% 40%, #1d3c34 0%, #0a0d12 60%)">
+          <div class="hero-mark">$ pip install springdocker</div>
+          <h1 class="hero-title" style="margin-top: 0.3em;">Build the Dockerfile<br/>your app <em>deserves</em>.</h1>
+          <p class="hero-sub" style="margin-top: 1.0em;">Generate. Explain. Verify. Repeat.</p>
+          <div class="pill-row" style="margin-top: 1.5em;">
+            <span class="pill">github.com/your‑org/springdocker</span>
+            <span class="pill">docs.springdocker.dev</span>
+            <span class="pill">public benchmark dataset</span>
+          </div>
+        </section>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      controls: true,
+      progress: true,
+      slideNumber: 'c/t',
+      transition: 'slide',
+      backgroundTransition: 'fade',
+      width: 1280,
+      height: 760,
+      margin: 0.06,
+      plugins: [ RevealHighlight, RevealNotes ]
+    });
+  </script>
+</body>
+</html>
