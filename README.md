@@ -10,6 +10,14 @@ Developer toolkit for Spring Boot containerization and benchmark-driven JVM tuni
 
 `springdocker` is a Python CLI that helps you inspect a Spring Boot project, generate a Dockerfile, create benchmark assets, run benchmark suites, and summarize benchmark results.
 
+## Why springdocker instead of Jib or Buildpacks?
+
+- **Jib** and **Buildpacks** optimize for build convenience and opaque image assembly.
+- **springdocker** optimizes for teams that want a **real Dockerfile they can own, read, and edit**.
+- It combines explicit Dockerfile generation with explainability and verification workflows.
+
+See `POSITIONING.md` for the detailed comparison and tradeoffs.
+
 ## Architecture
 
 ```mermaid

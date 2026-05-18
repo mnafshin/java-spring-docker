@@ -2,7 +2,7 @@
   "version": "0.1.0",
   "description": "Spring Boot Dockerfile and benchmark workflow CLI",
   "homepage": "https://github.com/mnafshin/springdocker",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "architecture": {
     "64bit": {
       "url": "https://github.com/mnafshin/springdocker/releases/download/v0.1.0/springdocker-windows-amd64.zip",
