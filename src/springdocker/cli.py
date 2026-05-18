@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from typing import Callable
 
 from .commands import (
     cmd_benchmark_analyze,
@@ -22,6 +23,18 @@ from .config import (
     resolve_dockerfile_generate_config,
     resolve_doctor_config,
 )
+
+# Type alias for dispatch handlers: each receives parsed args and resolved project root.
+_Handler = Callable[[argparse.Namespace, Path], int]
+
+# Dispatch key: (command,) for top-level commands, (command, subcommand) for nested ones.
+_DispatchKey = tuple[str, ...]
+
+# Nested subcommand attribute names keyed by their parent command name.
+_SUBCOMMAND_ATTR: dict[str, str] = {
+    "dockerfile": "dockerfile_command",
+    "benchmark": "benchmark_command",
+}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -173,135 +186,167 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _handle_init(args: argparse.Namespace, project_root: Path) -> int:
+    config_path = Path(args.config)
+    if not config_path.is_absolute():
+        config_path = project_root / config_path
+    return cmd_init(
+        project_root=project_root,
+        build_tool=args.build_tool,
+        config_path=config_path,
+        profile=args.profile,
+        force=args.force,
+        print_only=args.print_only,
+    )
+
+
+def _handle_doctor(args: argparse.Namespace, project_root: Path) -> int:
+    loaded = load_config(project_root / ".springdocker.toml")
+    resolved = resolve_doctor_config(cli_build_tool=args.build_tool, loaded_config=loaded)
+    return cmd_doctor(project_root, resolved.build_tool)
+
+
+def _handle_inspect(args: argparse.Namespace, project_root: Path) -> int:
+    return cmd_inspect(project_root=project_root, build_tool=args.build_tool, output_format=args.format)
+
+
+def _handle_explain(args: argparse.Namespace, project_root: Path) -> int:
+    return cmd_explain(project_root=project_root, dockerfile_path=args.dockerfile, output_format=args.format)
+
+
+def _handle_verify(args: argparse.Namespace, project_root: Path) -> int:
+    return cmd_verify(
+        project_root=project_root,
+        dockerfile_path=args.dockerfile,
+        image=args.image,
+        smoke_url=args.smoke_url,
+        output_format=args.format,
+        output_path=args.output,
+    )
+
+
+def _handle_dockerfile_generate(args: argparse.Namespace, project_root: Path) -> int:
+    loaded = load_config(project_root / ".springdocker.toml")
+    resolved = resolve_dockerfile_generate_config(
+        cli_build_tool=args.build_tool,
+        cli_output=args.output,
+        cli_java_version=args.java_version,
+        cli_wizard_args=args.wizard_arg,
+        cli_use_legacy_scripts=args.use_legacy_scripts,
+        loaded_config=loaded,
+    )
+    return cmd_dockerfile_generate(
+        project_root=project_root,
+        build_tool=resolved.build_tool,
+        output=resolved.output,
+        java_version=resolved.java_version,
+        must_have_modules_file=resolved.must_have_modules_file,
+        extra_args=resolved.wizard_args,
+        use_legacy_scripts=resolved.use_legacy_scripts,
+    )
+
+
+def _handle_benchmark_generate(args: argparse.Namespace, project_root: Path) -> int:
+    loaded = load_config(project_root / ".springdocker.toml")
+    resolved = resolve_benchmark_generate_config(
+        cli_build_tool=args.build_tool,
+        cli_java_version=args.java_version,
+        cli_use_legacy_scripts=args.use_legacy_scripts,
+        loaded_config=loaded,
+    )
+    return cmd_benchmark_generate(
+        project_root=project_root,
+        build_tool=resolved.build_tool,
+        java_version=resolved.java_version,
+        use_legacy_scripts=resolved.use_legacy_scripts,
+    )
+
+
+def _handle_benchmark_run(args: argparse.Namespace, project_root: Path) -> int:
+    config_path = Path(args.config)
+    if not config_path.is_absolute():
+        config_path = project_root / config_path
+    loaded = load_config(config_path)
+    resolved = resolve_benchmark_run_config(
+        cli_build_tool=args.build_tool,
+        cli_profile=args.profile,
+        cli_runner_args=args.runner_arg,
+        cli_cpuset_cpus=args.cpuset_cpus,
+        cli_memory_limit=args.memory,
+        cli_warmup_runs=args.warmup_runs,
+        cli_max_workers=args.max_workers,
+        cli_normalized_runtime=args.normalized_runtime,
+        cli_use_legacy_scripts=args.use_legacy_scripts,
+        loaded_config=loaded,
+    )
+    return cmd_benchmark_run(
+        project_root=project_root,
+        build_tool=resolved.build_tool,
+        profile=resolved.profile,
+        extra_args=resolved.runner_args,
+        cpuset_cpus=resolved.cpuset_cpus,
+        memory_limit=resolved.memory_limit,
+        warmup_runs=resolved.warmup_runs,
+        max_workers=resolved.max_workers,
+        normalized_runtime=resolved.normalized_runtime,
+        use_legacy_scripts=resolved.use_legacy_scripts,
+    )
+
+
+def _handle_benchmark_analyze(args: argparse.Namespace, project_root: Path) -> int:
+    return cmd_benchmark_analyze(
+        project_root=project_root,
+        raw_csv=args.raw_csv,
+        output_format=args.format,
+        scenario=args.scenario,
+        variant=args.variant,
+        output_path=args.output,
+        fail_on_success_rate_below=args.fail_on_success_rate_below,
+        baseline_path=args.baseline,
+        fail_on_regression_above=args.fail_on_regression_above,
+    )
+
+
+def _handle_benchmark_compare(args: argparse.Namespace, project_root: Path) -> int:
+    return cmd_benchmark_compare(
+        project_root=project_root,
+        raw_csv=args.raw_csv,
+        baseline_variant=args.baseline_variant,
+        output_format=args.format,
+        scenario=args.scenario,
+    )
+
+
+# Registry mapping dispatch keys to handler functions.
+# Top-level commands use a one-element key; nested commands use (parent, subcommand).
+# To add a new command: register a parser in build_parser() and add an entry here.
+_DISPATCH: dict[_DispatchKey, _Handler] = {
+    ("init",): _handle_init,
+    ("doctor",): _handle_doctor,
+    ("inspect",): _handle_inspect,
+    ("explain",): _handle_explain,
+    ("verify",): _handle_verify,
+    ("dockerfile", "generate"): _handle_dockerfile_generate,
+    ("benchmark", "generate"): _handle_benchmark_generate,
+    ("benchmark", "run"): _handle_benchmark_run,
+    ("benchmark", "analyze"): _handle_benchmark_analyze,
+    ("benchmark", "compare"): _handle_benchmark_compare,
+}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     project_root = Path(args.project_root).resolve()
 
-    if args.command == "init":
-        config_path = Path(args.config)
-        if not config_path.is_absolute():
-            config_path = project_root / config_path
-        return cmd_init(
-            project_root=project_root,
-            build_tool=args.build_tool,
-            config_path=config_path,
-            profile=args.profile,
-            force=args.force,
-            print_only=args.print_only,
-        )
+    sub_attr = _SUBCOMMAND_ATTR.get(args.command)
+    key: _DispatchKey = (args.command, getattr(args, sub_attr)) if sub_attr else (args.command,)
 
-    if args.command == "doctor":
-        config_path = project_root / ".springdocker.toml"
-        loaded = load_config(config_path)
-        resolved_doctor = resolve_doctor_config(cli_build_tool=args.build_tool, loaded_config=loaded)
-        return cmd_doctor(project_root, resolved_doctor.build_tool)
-
-    if args.command == "inspect":
-        return cmd_inspect(project_root=project_root, build_tool=args.build_tool, output_format=args.format)
-
-    if args.command == "explain":
-        return cmd_explain(project_root=project_root, dockerfile_path=args.dockerfile, output_format=args.format)
-
-    if args.command == "verify":
-        return cmd_verify(
-            project_root=project_root,
-            dockerfile_path=args.dockerfile,
-            image=args.image,
-            smoke_url=args.smoke_url,
-            output_format=args.format,
-            output_path=args.output,
-        )
-
-    if args.command == "dockerfile" and args.dockerfile_command == "generate":
-        loaded = load_config(project_root / ".springdocker.toml")
-        resolved_dockerfile = resolve_dockerfile_generate_config(
-            cli_build_tool=args.build_tool,
-            cli_output=args.output,
-            cli_java_version=args.java_version,
-            cli_wizard_args=args.wizard_arg,
-            cli_use_legacy_scripts=args.use_legacy_scripts,
-            loaded_config=loaded,
-        )
-        return cmd_dockerfile_generate(
-            project_root=project_root,
-            build_tool=resolved_dockerfile.build_tool,
-            output=resolved_dockerfile.output,
-            java_version=resolved_dockerfile.java_version,
-            must_have_modules_file=resolved_dockerfile.must_have_modules_file,
-            extra_args=resolved_dockerfile.wizard_args,
-            use_legacy_scripts=resolved_dockerfile.use_legacy_scripts,
-        )
-
-    if args.command == "benchmark" and args.benchmark_command == "generate":
-        loaded = load_config(project_root / ".springdocker.toml")
-        resolved_generate = resolve_benchmark_generate_config(
-            cli_build_tool=args.build_tool,
-            cli_java_version=args.java_version,
-            cli_use_legacy_scripts=args.use_legacy_scripts,
-            loaded_config=loaded,
-        )
-        return cmd_benchmark_generate(
-            project_root=project_root,
-            build_tool=resolved_generate.build_tool,
-            java_version=resolved_generate.java_version,
-            use_legacy_scripts=resolved_generate.use_legacy_scripts,
-        )
-
-    if args.command == "benchmark" and args.benchmark_command == "run":
-        config_path = Path(args.config)
-        if not config_path.is_absolute():
-            config_path = project_root / config_path
-        loaded = load_config(config_path)
-        resolved_run = resolve_benchmark_run_config(
-            cli_build_tool=args.build_tool,
-            cli_profile=args.profile,
-            cli_runner_args=args.runner_arg,
-            cli_cpuset_cpus=args.cpuset_cpus,
-            cli_memory_limit=args.memory,
-            cli_warmup_runs=args.warmup_runs,
-            cli_max_workers=args.max_workers,
-            cli_normalized_runtime=args.normalized_runtime,
-            cli_use_legacy_scripts=args.use_legacy_scripts,
-            loaded_config=loaded,
-        )
-        return cmd_benchmark_run(
-            project_root=project_root,
-            build_tool=resolved_run.build_tool,
-            profile=resolved_run.profile,
-            extra_args=resolved_run.runner_args,
-            cpuset_cpus=resolved_run.cpuset_cpus,
-            memory_limit=resolved_run.memory_limit,
-            warmup_runs=resolved_run.warmup_runs,
-            max_workers=resolved_run.max_workers,
-            normalized_runtime=resolved_run.normalized_runtime,
-            use_legacy_scripts=resolved_run.use_legacy_scripts,
-        )
-
-    if args.command == "benchmark" and args.benchmark_command == "analyze":
-        return cmd_benchmark_analyze(
-            project_root=project_root,
-            raw_csv=args.raw_csv,
-            output_format=args.format,
-            scenario=args.scenario,
-            variant=args.variant,
-            output_path=args.output,
-            fail_on_success_rate_below=args.fail_on_success_rate_below,
-            baseline_path=args.baseline,
-            fail_on_regression_above=args.fail_on_regression_above,
-        )
-
-    if args.command == "benchmark" and args.benchmark_command == "compare":
-        return cmd_benchmark_compare(
-            project_root=project_root,
-            raw_csv=args.raw_csv,
-            baseline_variant=args.baseline_variant,
-            output_format=args.format,
-            scenario=args.scenario,
-        )
-
-    parser.error("unknown command")
-    return 2
+    handler = _DISPATCH.get(key)
+    if handler is None:
+        parser.error("unknown command")
+        return 2
+    return handler(args, project_root)
 
 
 if __name__ == "__main__":
