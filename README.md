@@ -35,7 +35,8 @@ See `docs/architecture.md` for the detailed module map and command lifecycle.
 The repo is split into three main surfaces:
 
 - `src/springdocker/` - installable CLI package and core implementation.
-- `samples/java-spring-docker/` - sample Spring Boot project used by the CLI and benchmark assets.
+- `examples/spring-boot-maven/` and `examples/spring-boot-gradle/` - isolated sample projects per build tool.
+- `samples/java-spring-docker/` - legacy mixed sample retained for benchmark assets.
 - `cli/README.md` - command reference and configuration details.
 
 ## What it does
