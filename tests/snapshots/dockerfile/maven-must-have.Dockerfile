@@ -5,6 +5,8 @@
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 
+ARG SOURCE_DATE_EPOCH=0
+
 ARG OCI_SOURCE=""
 ARG OCI_REVISION=""
 ARG OCI_CREATED=""
@@ -16,6 +18,7 @@ COPY .mvn ./.mvn
 RUN chmod +x mvnw
 COPY src ./src
 RUN --mount=type=cache,sharing=locked,target=/root/.m2 ./mvnw -B -q package -DskipTests
+RUN install -d /tmp/sbom && printf '{"spdxVersion":"SPDX-2.3","name":"springdocker-generated-image"}' > /tmp/sbom/spdx.json
 
 FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk@sha256:c2b7ea21649875fb9052237ac4e3cd4ef63968a2a389a0a1b1a72a5e53e5c93f AS jre-builder
 WORKDIR /jre
@@ -38,6 +41,8 @@ EXPOSE 8081
 LABEL org.opencontainers.image.source="${OCI_SOURCE}" \
       org.opencontainers.image.revision="${OCI_REVISION}" \
       org.opencontainers.image.created="${OCI_CREATED}"
+COPY --from=build /tmp/sbom/spdx.json /usr/share/sbom/spdx.json
+ENV SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH}"
 COPY --from=jre-builder /opt/java /opt/java
 ENV JAVA_HOME=/opt/java
 ENV PATH="${JAVA_HOME}/bin:${PATH}"

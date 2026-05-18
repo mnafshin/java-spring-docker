@@ -47,6 +47,8 @@ class InternalFlowTests(unittest.TestCase):
             self.assertIn("VOLUME /tmp", generated)
             self.assertIn("ARG TARGETPLATFORM", generated)
             self.assertIn("--platform=$BUILDPLATFORM", generated)
+            self.assertIn("/usr/share/sbom/spdx.json", generated)
+            self.assertIn("SOURCE_DATE_EPOCH", generated)
 
     def test_benchmark_generate_without_legacy_script(self) -> None:
         with tempfile.TemporaryDirectory() as td:

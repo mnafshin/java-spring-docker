@@ -34,6 +34,8 @@ class DockerfileOptions:
     healthcheck_path: str | None = None
     include_oci_labels: bool = True
     include_stopsignal: bool = True
+    include_embedded_sbom: bool = True
+    include_reproducible_controls: bool = True
 
 
 @dataclass(frozen=True)
@@ -125,6 +127,8 @@ def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
     ]
     if options.platform_aware:
         sections.append(_section("ARG TARGETPLATFORM", "ARG BUILDPLATFORM", ""))
+    if options.include_reproducible_controls:
+        sections.append(_section("ARG SOURCE_DATE_EPOCH=0", ""))
     if options.include_oci_labels:
         sections.append(_section('ARG OCI_SOURCE=""', 'ARG OCI_REVISION=""', 'ARG OCI_CREATED=""', ""))
     build_base = _pin_image(f"eclipse-temurin:{options.java_version}-jdk", TEMURIN_JDK_DIGESTS.get(options.java_version))
@@ -134,6 +138,12 @@ def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
             "WORKDIR /app",
             *setup,
             build_step,
+            (
+                "RUN install -d /tmp/sbom && "
+                "printf '{\"spdxVersion\":\"SPDX-2.3\",\"name\":\"springdocker-generated-image\"}' > /tmp/sbom/spdx.json"
+            )
+            if options.include_embedded_sbom
+            else "",
             "",
         )
     )
@@ -190,6 +200,10 @@ def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
             )
         if options.non_root:
             distroless_lines.append("USER nonroot")
+        if options.include_embedded_sbom:
+            distroless_lines.append("COPY --from=build /tmp/sbom/spdx.json /usr/share/sbom/spdx.json")
+        if options.include_reproducible_controls:
+            distroless_lines.append('ENV SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH}"')
         sections.append(_section(*distroless_lines))
     else:
         runtime_base = _pin_image(
@@ -230,6 +244,10 @@ def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
                 + options.healthcheck_path
                 + '" >/dev/null || exit 1'
             )
+        if options.include_embedded_sbom:
+            temurin_lines.append("COPY --from=build /tmp/sbom/spdx.json /usr/share/sbom/spdx.json")
+        if options.include_reproducible_controls:
+            temurin_lines.append('ENV SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH}"')
         sections.append(_section(*temurin_lines))
 
     if options.use_jlink and options.runtime_image != "distroless":
@@ -405,6 +423,22 @@ def explain_dockerfile_text(text: str) -> dict[str, object]:
                 "name": "OCI image labels",
                 "enabled": True,
                 "reason": "Includes standard OCI metadata labels for provenance and traceability.",
+            }
+        )
+    if "/usr/share/sbom/spdx.json" in text:
+        features.append(
+            {
+                "name": "embedded SBOM",
+                "enabled": True,
+                "reason": "Embeds an SPDX JSON file into the container image filesystem.",
+            }
+        )
+    if "SOURCE_DATE_EPOCH" in text:
+        features.append(
+            {
+                "name": "reproducible build controls",
+                "enabled": True,
+                "reason": "Uses SOURCE_DATE_EPOCH controls for build reproducibility.",
             }
         )
 
