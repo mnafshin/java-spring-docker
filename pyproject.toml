@@ -17,6 +17,11 @@ authors = [
 ]
 license = { text = "UNLICENSED" }
 
+[project.urls]
+Homepage = "https://github.com/mnafshin/springdocker"
+Source = "https://github.com/mnafshin/springdocker"
+Issues = "https://github.com/mnafshin/springdocker/issues"
+
 [project.scripts]
 springdocker = "springdocker.cli:main"
 

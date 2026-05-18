@@ -5,7 +5,7 @@ This directory contains the Reveal.js deck for Java/Spring Dockerfile decision-m
 ## Open locally
 
 ```bash
-cd /path/to/java-spring-docker
+cd /path/to/springdocker
 python3 -m http.server 8000
 ```
 

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 VERSION="${1:-0.1.0}"
-ARCHIVE_URL="https://github.com/mnafshin/java-spring-docker/releases/download/v${VERSION}/springdocker-linux-amd64.tar.gz"
+ARCHIVE_URL="https://github.com/mnafshin/springdocker/releases/download/v${VERSION}/springdocker-linux-amd64.tar.gz"
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
