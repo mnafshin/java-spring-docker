@@ -80,6 +80,25 @@ For historical regression tracking, save a baseline summary with `--output basel
 
 The CI workflow uses the checked-in sample baseline under `samples/java-spring-docker/benchmarks/06-base-image-choice/results/baseline.json` to fail fast when the sample report regresses beyond the configured threshold.
 
+## Current sample comparison snapshot
+
+For the current checked-in reference snapshot, the high-level decision matrix is:
+
+| Scenario | Preferred strategy | Why |
+|---|---|---|
+| 01 Multi-stage structure | specialized multi-stage | lower image size and better build cost |
+| 02 BuildKit cache | with-cache | much faster builds |
+| 03 JLink + JDeps | with-jlink | smaller runtime image with similar startup |
+| 04 JEP 483 AOT cache | with-aot-cache | better startup and tail latency |
+| 05 JVM flags | workload-dependent | host sensitivity makes the winner variable |
+| 06 Base image choice | debian-bookworm-slim | best size/startup balance in sample runs |
+| 07 Native vs JVM | workload-dependent | cold-start vs throughput tradeoff |
+
+Reference evidence files are versioned under:
+
+- `samples/java-spring-docker/benchmarks/reference/v1/raw.csv`
+- `samples/java-spring-docker/benchmarks/reference/v1/summary.json`
+
 ## Reproducibility controls
 
 `springdocker benchmark run` supports optional isolation controls for more stable comparisons:
