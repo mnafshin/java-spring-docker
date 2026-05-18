@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from jinja2 import Environment, PackageLoader, StrictUndefined
+
 TEMURIN_JDK_DIGESTS = {
     17: "sha256:b04a8c5d46e210873ffd1af6ad5f4d62c69ed3a6736993556eae60bba1373a23",
     21: "sha256:b9142586f9712700c6c9e07adcedfb18608b1a3a056e4001423a3354adfa9d80",
@@ -53,7 +55,16 @@ class DockerfileDocument:
         lines: list[str] = []
         for section in self.sections:
             lines.extend(section.lines)
-        return "\n".join(lines)
+        env = Environment(
+            loader=PackageLoader("springdocker", "templates"),
+            autoescape=False,
+            trim_blocks=False,
+            lstrip_blocks=False,
+            keep_trailing_newline=False,
+            undefined=StrictUndefined,
+        )
+        template = env.get_template("dockerfile.j2")
+        return template.render(lines=lines)
 
 
 def _build_setup(build_tool: str) -> tuple[list[str], str, str]:
