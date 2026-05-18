@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable, cast
 
 from .commands import (
     cmd_benchmark_analyze,
@@ -23,6 +23,8 @@ from .config import (
     resolve_dockerfile_generate_config,
     resolve_doctor_config,
 )
+from .errors import print_warning
+from .plugins import register_command_plugins
 
 # Type alias for dispatch handlers: each receives parsed args and resolved project root.
 _Handler = Callable[[argparse.Namespace, Path], int]
@@ -79,7 +81,7 @@ def build_parser() -> argparse.ArgumentParser:
     verify.add_argument("--dockerfile", default="Dockerfile.generated")
     verify.add_argument("--image", default=None, help="Optional built image reference for dive/cosign checks")
     verify.add_argument("--smoke-url", default=None, help="Optional HTTP endpoint for smoke verification")
-    verify.add_argument("--format", choices=["table", "json", "junit", "sarif"], default="table")
+    verify.add_argument("--format", default="table")
     verify.add_argument("--output", default=None, help="Write verification report to file")
 
     dockerfile = sub.add_parser("dockerfile", help="Dockerfile operations")
@@ -90,7 +92,6 @@ def build_parser() -> argparse.ArgumentParser:
     gen.add_argument("--java-version", type=int, default=None, help="Java major version for generated Dockerfile")
     gen.add_argument(
         "--recipe",
-        choices=["jvm-balanced", "spring-aot", "native-aot"],
         default=None,
         help="Dockerfile generation recipe preset",
     )
@@ -189,6 +190,8 @@ def build_parser() -> argparse.ArgumentParser:
     bench_compare.add_argument("--scenario", default=None, help="Filter by scenario id")
     bench_compare.add_argument("--format", choices=["table", "json"], default="table")
 
+    plugin_warnings = register_command_plugins(sub)
+    setattr(parser, "_plugin_registration_warnings", plugin_warnings)
     return parser
 
 
@@ -346,6 +349,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     project_root = Path(args.project_root).resolve()
+    for warning in cast(tuple[str, ...], getattr(parser, "_plugin_registration_warnings", ())):
+        print_warning(warning)
+
+    plugin_handler = cast(Any, getattr(args, "_plugin_handler", None))
+    if plugin_handler is not None:
+        if not callable(plugin_handler):
+            parser.error("invalid plugin handler")
+            return 2
+        return cast(int, plugin_handler(args, project_root))
 
     sub_attr = _SUBCOMMAND_ATTR.get(args.command)
     key: _DispatchKey = (args.command, getattr(args, sub_attr)) if sub_attr else (args.command,)

@@ -10,6 +10,7 @@ from typing import cast
 from .benchmarks.generate import generate_benchmark_assets
 from .benchmarks.runner import run_benchmarks
 from .errors import EXIT_FAILURE, EXIT_OK, EXIT_USAGE, print_error, print_warning
+from .plugins import render_verify_with_plugins
 from .project_detect import inspect_project
 from .regression import format_regression_json, format_regression_table
 from .services import benchmark_service, dockerfile_service, project_service
@@ -178,8 +179,20 @@ def cmd_verify(
         rendered = render_verify_junit(outcome)
     elif output_format == "sarif":
         rendered = render_verify_sarif(outcome)
-    else:
+    elif output_format == "table":
         rendered = render_verify_table(outcome)
+    else:
+        plugin_render = render_verify_with_plugins(output_format, outcome)
+        for warning in plugin_render.warnings:
+            print_warning(warning)
+        if plugin_render.handled and plugin_render.rendered is not None:
+            rendered = plugin_render.rendered
+        elif plugin_render.handled:
+            print_error(f"verify format '{output_format}' was handled by plugin but produced no output")
+            return EXIT_USAGE
+        else:
+            print_error(f"unknown verify format: {output_format}")
+            return EXIT_USAGE
 
     if output_path is not None:
         destination = Path(output_path)

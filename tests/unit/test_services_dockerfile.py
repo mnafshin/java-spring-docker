@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.test_support import add_src_to_path
 
@@ -82,6 +83,23 @@ class DockerfileServiceTests(unittest.TestCase):
             self.assertIn("native-image-community:21", rendered)
             self.assertIn("nativeCompile -x test", rendered)
             self.assertIn('ENTRYPOINT ["/app/app"]', rendered)
+
+    def test_generate_dockerfile_uses_recipe_plugin(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            with patch(
+                "springdocker.services.dockerfile_service.render_recipe_from_plugins",
+                return_value=type("R", (), {"rendered": "FROM scratch\n", "handled": True, "warnings": ()})(),
+            ):
+                generated = generate_dockerfile(
+                    project_root=root,
+                    output_path="Dockerfile.plugin",
+                    build_tool="maven",
+                    java_version=21,
+                    must_have_modules_file=None,
+                    recipe="acme",
+                )
+            self.assertEqual(generated.path.read_text("utf-8"), "FROM scratch\n")
 
 
 if __name__ == "__main__":

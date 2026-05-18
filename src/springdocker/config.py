@@ -231,8 +231,6 @@ def resolve_dockerfile_generate_config(
     output = cli_output or _expect_optional_str(dockerfile.get("output"), "dockerfile.output") or "Dockerfile.generated"
     java_version = cli_java_version or _expect_optional_int(dockerfile.get("java_version"), "dockerfile.java_version") or 25
     recipe = cli_recipe or _expect_optional_str(dockerfile.get("recipe"), "dockerfile.recipe") or "jvm-balanced"
-    if recipe not in {"jvm-balanced", "spring-aot", "native-aot"}:
-        raise ValueError("dockerfile recipe must be one of: jvm-balanced, spring-aot, native-aot")
     must_have_modules_file = _expect_optional_str(
         dockerfile.get("must_have_modules_file"),
         "dockerfile.must_have_modules_file",

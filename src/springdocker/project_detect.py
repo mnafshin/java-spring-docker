@@ -5,6 +5,8 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 
+from .plugins import detect_build_tool_from_plugins
+
 
 @dataclass(frozen=True)
 class ProjectInfo:
@@ -34,6 +36,10 @@ def detect_build_tool(root: Path, explicit: str | None = None) -> str:
         if explicit not in {"maven", "gradle"}:
             raise ValueError("build tool must be 'maven' or 'gradle'")
         return explicit
+
+    plugin_detected = detect_build_tool_from_plugins(root)
+    if plugin_detected is not None:
+        return plugin_detected
 
     has_maven = (root / "pom.xml").exists()
     has_gradle = (root / "gradlew").exists() or any(

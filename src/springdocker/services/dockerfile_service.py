@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..dockerfile import DockerfileOptions, build_dockerfile, explain_dockerfile_text
-from ..plugins import apply_dockerfile_mutators
+from ..plugins import apply_dockerfile_mutators, render_recipe_from_plugins
 
 DEFAULT_DOCKERIGNORE = (
     ".git",
@@ -87,15 +87,28 @@ def generate_dockerfile(
         must_have_modules=must_have_modules,
         healthcheck_path=actuator_healthcheck,
     )
+    recipe_warnings: tuple[str, ...] = ()
+    if recipe in {"jvm-balanced", "spring-aot", "native-aot"}:
+        rendered = build_dockerfile(options)
+    else:
+        recipe_render = render_recipe_from_plugins(recipe=recipe, options=options)
+        recipe_warnings = recipe_render.warnings
+        if recipe_render.handled and recipe_render.rendered is not None:
+            rendered = recipe_render.rendered
+        elif recipe_render.handled:
+            raise ValueError(f"recipe plugin '{recipe}' failed to render Dockerfile")
+        else:
+            raise ValueError(f"unknown dockerfile recipe: {recipe}")
+
     generated = apply_dockerfile_mutators(
-        dockerfile_text=build_dockerfile(options),
+        dockerfile_text=rendered,
         options=options,
     )
     destination = resolve_path(project_root, output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(generated.dockerfile_text, encoding="utf-8")
     ensure_default_dockerignore(project_root)
-    return GeneratedDockerfile(path=destination, plugin_warnings=generated.warnings)
+    return GeneratedDockerfile(path=destination, plugin_warnings=(*recipe_warnings, *generated.warnings))
 
 
 @dataclass(frozen=True)

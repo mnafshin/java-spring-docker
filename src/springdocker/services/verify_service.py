@@ -7,10 +7,11 @@ import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
-from importlib.metadata import EntryPoint, entry_points
 from pathlib import Path
 from typing import Any, Literal, cast
 from xml.sax.saxutils import escape
+
+from ..plugins import iter_verifier_entry_points
 
 VerifyStatus = Literal["passed", "failed", "skipped"]
 
@@ -38,14 +39,6 @@ class VerifyContext:
     dockerfile_path: Path
     image: str | None
     smoke_url: str | None
-
-
-def _iter_entry_points(group: str) -> list[EntryPoint]:
-    discovered = entry_points()
-    if hasattr(discovered, "select"):
-        return list(discovered.select(group=group))
-    legacy = cast(dict[str, list[EntryPoint]], discovered)
-    return list(legacy.get(group, []))
 
 
 def _run_tool(args: list[str], ok_exit_codes: tuple[int, ...] = (0,)) -> tuple[VerifyStatus, str]:
@@ -117,7 +110,7 @@ def _verify_smoke(context: VerifyContext) -> tuple[VerifyStatus, str]:
         return "failed", str(exc)
 
 
-def _verify_plugin_entry(context: VerifyContext, entry: EntryPoint) -> tuple[VerifyStatus, str]:
+def _verify_plugin_entry(context: VerifyContext, entry: Any) -> tuple[VerifyStatus, str]:
     loaded = entry.load()
     verifier = loaded() if isinstance(loaded, type) else loaded
     if hasattr(verifier, "verify") and callable(verifier.verify):
@@ -158,7 +151,7 @@ def run_verification(context: VerifyContext) -> VerifyOutcome:
         duration_ms = int((time.monotonic() - started) * 1000)
         results.append(VerifyResult(name=name, status=status, detail=detail, duration_ms=duration_ms))
 
-    for entry in _iter_entry_points("springdocker.verifiers"):
+    for entry in iter_verifier_entry_points():
         started = time.monotonic()
         try:
             status, detail = _verify_plugin_entry(context, entry)

@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.test_support import add_src_to_path
 
@@ -32,6 +33,12 @@ class ProjectDetectTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 detect_build_tool(root)
             self.assertEqual(detect_build_tool(root, "maven"), "maven")
+
+    def test_detect_uses_plugin_detector(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            with patch("springdocker.project_detect.detect_build_tool_from_plugins", return_value="gradle"):
+                self.assertEqual(detect_build_tool(root), "gradle")
 
     def test_spring_markers(self) -> None:
         with tempfile.TemporaryDirectory() as td:

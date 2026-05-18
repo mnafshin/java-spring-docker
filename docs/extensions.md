@@ -1,50 +1,54 @@
 # Extension model
 
-`springdocker` now supports a runtime plugin loader for Dockerfile mutation hooks via Python entry points.
+`springdocker` supports runtime plugins through Python entry points.
 
 ## Extension points
 
-| Surface | Module | Typical customization |
+| Entry-point group | Contract | Used by |
 |---|---|---|
-| CLI parsing | `src/springdocker/cli.py` | Add new commands or flags. |
-| Command orchestration | `src/springdocker/commands.py` | Add validation, extra file I/O, or alternate output formats. |
-| Project detection | `src/springdocker/project_detect.py` | Support extra build metadata or repository conventions. |
-| Dockerfile generation | `src/springdocker/dockerfile.py` | Post-process generated Dockerfiles or add org-specific defaults. |
-| Benchmark reporting | `src/springdocker/analyze.py` | Add new summary columns or renderers. |
-
-## Plugin entry point contract
-
-Use the entry point group:
-
-```text
-springdocker.dockerfile_mutators
-```
-
-A plugin may be:
-
-1. an object (or class) exposing `mutate_dockerfile(dockerfile_text, options) -> str`
-2. a callable `(dockerfile_text, options) -> str`
-
-Plugins are executed in discovery order during `springdocker dockerfile generate`.
+| `springdocker.dockerfile_mutators` | `mutate_dockerfile(dockerfile_text, options) -> str` | Post-process generated Dockerfiles |
+| `springdocker.project_detectors` | `detect_build_tool(project_root) -> "maven" \| "gradle" \| None` | Build-tool detection override |
+| `springdocker.recipes` | entry-point name is recipe name; callable returns Dockerfile text | Custom `dockerfile generate --recipe ...` |
+| `springdocker.verifiers` | `verify(context) -> (status, detail)` or dict payload | Extra checks in `verify` command |
+| `springdocker.verify_renderers` | entry-point name is output format; callable `render(outcome) -> str` | Custom `verify --format ...` renderers |
+| `springdocker.commands` | `register(subparsers)` and parser `set_defaults(_plugin_handler=...)` | Add top-level CLI commands |
 
 ## Failure handling
 
 - Plugin failures are isolated per plugin.
-- Generation still succeeds using the last valid Dockerfile text.
-- Warnings are emitted in CLI output for failed plugins.
-- Set `SPRINGDOCKER_DISABLE_PLUGINS=1` to bypass plugin loading.
+- The command keeps running with built-in behavior whenever possible.
+- Warnings are emitted for failed plugin invocations.
+- Set `SPRINGDOCKER_DISABLE_PLUGINS=1` to disable all plugin groups.
 
-## Recommended extension shape
+## Reference plugins
 
-1. Keep plugin logic deterministic and side-effect free.
-2. Return only Dockerfile text from mutators.
-3. Add tests for both successful mutation and failure isolation behavior.
+See:
 
-## Example extension
+- `docs/examples/extensions/custom_dockerfile_mutator.py`
+- `docs/examples/extensions/custom_project_detector.py`
+- `docs/examples/extensions/custom_recipe.py`
+- `docs/examples/extensions/custom_verifier.py`
+- `docs/examples/extensions/custom_verify_renderer.py`
+- `docs/examples/extensions/custom_command.py`
 
-See `docs/examples/extensions/custom_dockerfile_mutator.py` for a concrete mutator example that adds an organization label after generation.
+## Packaging example
 
-## Notes
+```toml
+[project.entry-points."springdocker.dockerfile_mutators"]
+company-label = "acme_plugins.mutators:CompanyLabelMutator"
 
-- Prefer a plugin mutator or small adapter over patching generated output by hand.
-- Keep mutators focused; use wrappers when you need larger workflow changes.
+[project.entry-points."springdocker.project_detectors"]
+mono-repo = "acme_plugins.detectors:detect_build_tool"
+
+[project.entry-points."springdocker.recipes"]
+acme-jvm = "acme_plugins.recipes:render_recipe"
+
+[project.entry-points."springdocker.verifiers"]
+license = "acme_plugins.verifiers:verify"
+
+[project.entry-points."springdocker.verify_renderers"]
+acme-json = "acme_plugins.renderers:render"
+
+[project.entry-points."springdocker.commands"]
+acme-doctor = "acme_plugins.commands:register"
+```

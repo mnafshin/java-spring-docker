@@ -149,6 +149,22 @@ class InternalFlowTests(unittest.TestCase):
             self.assertTrue(report.exists())
             self.assertIn('"overall": "passed"', report.read_text(encoding="utf-8"))
 
+    def test_verify_rejects_unknown_format(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            dockerfile = root / "Dockerfile.generated"
+            dockerfile.write_text("FROM scratch\n", encoding="utf-8")
+            (root / "sbom.spdx.json").write_text('{"spdxVersion":"SPDX-2.3"}', encoding="utf-8")
+            code = cmd_verify(
+                project_root=root,
+                dockerfile_path="Dockerfile.generated",
+                image=None,
+                smoke_url=None,
+                output_format="acme-json",
+                output_path=None,
+            )
+            self.assertEqual(code, 2)
+
     def test_benchmark_run_rejects_reproducibility_controls_with_legacy_scripts(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
