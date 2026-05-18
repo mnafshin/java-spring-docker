@@ -118,7 +118,6 @@ This repository currently targets:
 
 - `docs/architecture.md`
 - `docs/benchmark-methodology.md`
-- `docs/benchmark-comparison.md`
 - `docs/golden-samples.md`
 - `docs/extensions.md`
 - `docs/security-hardening.md`
