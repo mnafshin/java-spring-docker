@@ -1,6 +1,7 @@
 # Benchmark methodology
 
 This repository uses scenario-based Docker benchmarks against the sample Spring Boot project in `samples/java-spring-docker/`.
+Benchmark commands are optional evidence workflows and require `springdocker[benchmark]`.
 
 ## Measurement model
 
@@ -22,6 +23,7 @@ Each benchmark run records one row per build-and-startup attempt with these fiel
 If available, the analyzer also reports RSS memory and CPU usage columns.
 
 The runner writes rows into `results/raw.csv` next to each scenario.
+Versioned reference evidence snapshots are published under `samples/java-spring-docker/benchmarks/reference/`.
 
 ## Run profiles
 

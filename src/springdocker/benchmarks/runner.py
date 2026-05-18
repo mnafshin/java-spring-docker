@@ -9,6 +9,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 
+import requests
+
 from springdocker.benchmarks.generate import EXPECTED_CSV_HEADER, default_scenarios
 
 
@@ -22,6 +24,52 @@ class RunnerOptions:
     native_cpu_work: int | None
     java_version: int
     regenerate_scenarios: bool
+
+
+@dataclass(frozen=True)
+class CommandResult:
+    returncode: int
+    stdout: str = ""
+    stderr: str = ""
+    detail: str = ""
+
+
+def _run_command(
+    args: list[str],
+    *,
+    cwd: Path | None = None,
+    timeout_seconds: int = 300,
+    capture_output: bool = False,
+) -> CommandResult:
+    try:
+        if capture_output:
+            completed = subprocess.run(
+                args,
+                cwd=cwd,
+                check=False,
+                text=True,
+                timeout=timeout_seconds,
+                capture_output=True,
+            )
+        else:
+            completed = subprocess.run(
+                args,
+                cwd=cwd,
+                check=False,
+                text=True,
+                timeout=timeout_seconds,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        return CommandResult(
+            returncode=completed.returncode,
+            stdout=getattr(completed, "stdout", "") if capture_output else "",
+            stderr=getattr(completed, "stderr", "") if capture_output else "",
+        )
+    except subprocess.TimeoutExpired:
+        return CommandResult(returncode=124, detail=f"command timed out after {timeout_seconds}s")
+    except OSError as exc:
+        return CommandResult(returncode=127, detail=str(exc))
 
 
 def parse_runner_args(profile: str, extra_args: list[str]) -> RunnerOptions:
@@ -53,33 +101,28 @@ def parse_runner_args(profile: str, extra_args: list[str]) -> RunnerOptions:
 
 
 def _docker_version() -> str:
-    try:
-        out = subprocess.run(
-            ["docker", "--version"],
-            check=False,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-        if out:
-            return out.replace(",", "").split()[-1]
-    except OSError:
-        pass
+    result = _run_command(["docker", "--version"], capture_output=True, timeout_seconds=15)
+    out = result.stdout.strip()
+    if result.returncode == 0 and out:
+        return out.replace(",", "").split()[-1]
     return "unknown"
 
 
 def _wait_readiness(base_url: str, timeout_seconds: float = 40.0) -> int:
     start = time.time()
     while time.time() - start < timeout_seconds:
-        probe = subprocess.run(
-            ["curl", "-fsS", base_url],
-            check=False,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        if probe.returncode == 0:
-            return int((time.time() - start) * 1000)
+        try:
+            response = requests.get(base_url, timeout=2.0)
+            if response.status_code < 400:
+                return int((time.time() - start) * 1000)
+        except requests.RequestException:
+            pass
         time.sleep(0.25)
     return -1
+
+
+def _stop_container(container_name: str) -> None:
+    _run_command(["docker", "stop", container_name], timeout_seconds=30)
 
 
 def _append_row(path: Path, row: list[str]) -> None:
@@ -148,7 +191,7 @@ def _run_standard_scenario(
 
         for warmup_number in range(1, warmup_runs + 1):
             warmup_container = f"{image_tag.replace(':', '-')}-warmup-{warmup_number}"
-            subprocess.run(
+            warmup_start_result = _run_command(
                 [
                     "docker",
                     "run",
@@ -161,27 +204,25 @@ def _run_standard_scenario(
                     *runtime_flags,
                     image_tag,
                 ],
-                check=False,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                timeout_seconds=60,
             )
-            warmup_start = _wait_readiness("http://localhost:" + host_port + "/actuator/health/readiness")
-            subprocess.run(
-                ["docker", "stop", warmup_container],
-                check=False,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            print(f"warmup {warmup_number}: startup={warmup_start}")
+            if warmup_start_result.returncode != 0:
+                print(
+                    f"warmup {warmup_number}: failed ({warmup_start_result.detail or warmup_start_result.stderr or 'docker run failed'})"
+                )
+                continue
+            try:
+                warmup_start = _wait_readiness("http://localhost:" + host_port + "/actuator/health/readiness")
+                print(f"warmup {warmup_number}: startup={warmup_start}")
+            finally:
+                _stop_container(warmup_container)
 
         for run_number in range(1, runs + 1):
             build_start = time.time()
-            build = subprocess.run(
+            build = _run_command(
                 ["docker", "build", "-q", "-f", str(dockerfile), "-t", image_tag, "."],
                 cwd=project_root,
-                check=False,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                timeout_seconds=900,
             )
             build_ms = int((time.time() - build_start) * 1000)
             if build.returncode != 0:
@@ -196,7 +237,7 @@ def _run_standard_scenario(
                         "-1",
                         "-1",
                         "build_failed",
-                        "docker build failed",
+                        build.detail or build.stderr or "docker build failed",
                         host,
                         docker_version,
                         run_profile,
@@ -210,15 +251,14 @@ def _run_standard_scenario(
                 print(f"run {run_number}: build failed")
                 continue
 
-            image_size = subprocess.run(
+            image_size_result = _run_command(
                 ["docker", "image", "inspect", image_tag, "--format", "{{.Size}}"],
-                check=False,
                 capture_output=True,
-                text=True,
+                timeout_seconds=30,
             ).stdout.strip() or "-1"
 
             container_name = f"{image_tag.replace(':', '-')}-{run_number}"
-            subprocess.run(
+            start_result = _run_command(
                 [
                     "docker",
                     "run",
@@ -231,14 +271,19 @@ def _run_standard_scenario(
                     *runtime_flags,
                     image_tag,
                 ],
-                check=False,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                timeout_seconds=60,
             )
-            startup_ms = _wait_readiness("http://localhost:" + host_port + "/actuator/health/readiness")
-            status = "ok" if startup_ms >= 0 else "readiness_failed"
-            notes = "" if status == "ok" else "readiness endpoint not reachable"
-            subprocess.run(["docker", "stop", container_name], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if start_result.returncode != 0:
+                startup_ms = -1
+                status = "run_failed"
+                notes = start_result.detail or start_result.stderr or "docker run failed"
+            else:
+                try:
+                    startup_ms = _wait_readiness("http://localhost:" + host_port + "/actuator/health/readiness")
+                    status = "ok" if startup_ms >= 0 else "readiness_failed"
+                    notes = "" if status == "ok" else "readiness endpoint not reachable"
+                finally:
+                    _stop_container(container_name)
 
             _append_row(
                 raw_csv,
@@ -248,7 +293,7 @@ def _run_standard_scenario(
                     variant,
                     str(run_number),
                     str(build_ms),
-                    image_size,
+                    image_size_result,
                     str(startup_ms),
                     status,
                     notes,
@@ -263,7 +308,7 @@ def _run_standard_scenario(
                 ],
             )
             print(
-                f"run {run_number}: build={build_ms}ms size={image_size} "
+                f"run {run_number}: build={build_ms}ms size={image_size_result} "
                 f"startup={startup_ms} status={status}"
             )
 

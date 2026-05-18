@@ -185,6 +185,24 @@ class InternalFlowTests(unittest.TestCase):
             self.assertEqual(code, 2)
             self.assertIn("internal benchmark runner", stderr.getvalue())
 
+    def test_benchmark_generate_requires_optional_dependencies(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "pom.xml").write_text("<project/>", encoding="utf-8")
+            stderr = StringIO()
+            with patch(
+                "springdocker.commands.benchmark_service.require_benchmark_dependencies",
+                side_effect=ValueError("benchmark subsystem is optional"),
+            ), redirect_stderr(stderr):
+                code = cmd_benchmark_generate(
+                    project_root=root,
+                    build_tool=None,
+                    java_version=25,
+                    use_legacy_scripts=False,
+                )
+            self.assertEqual(code, 2)
+            self.assertIn("benchmark subsystem is optional", stderr.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

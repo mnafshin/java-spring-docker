@@ -57,6 +57,7 @@ cd /path/to/your-repo
 python3 -m venv .venv
 . .venv/bin/activate
 python3 -m pip install -e .
+python3 -m pip install -e '.[benchmark]'
 
 springdocker doctor --project-root samples/java-spring-docker
 springdocker inspect --project-root samples/java-spring-docker --format json
@@ -84,8 +85,11 @@ See `cli/README.md` for the command reference and config precedence rules.
 
 See `docs/benchmark-methodology.md` for the benchmark model, run profiles, and summary calculations.
 
+Benchmarks are an optional evidence subsystem and require benchmark extras (`springdocker[benchmark]`).
+
 The sample project keeps benchmark scenarios under `samples/java-spring-docker/benchmarks/`.
 Each scenario stores generated Dockerfiles and a `results/raw.csv` file so the output stays reproducible and easy to compare.
+Versioned reference datasets are under `samples/java-spring-docker/benchmarks/reference/`.
 
 Current reports focus on:
 

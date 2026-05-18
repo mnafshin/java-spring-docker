@@ -28,6 +28,9 @@ pipx upgrade springdocker
 ```bash
 uv tool install springdocker
 uv tool upgrade springdocker
+
+# benchmark/evidence commands need optional extras
+python3 -m pip install -e '.[benchmark]'
 ```
 
 ## Quick usage
@@ -48,6 +51,9 @@ springdocker benchmark analyze --project-root samples/java-spring-docker benchma
 springdocker benchmark analyze --project-root samples/java-spring-docker benchmarks/04-jep483-aot-cache/results/raw.csv --fail-on-success-rate-below 95
 springdocker benchmark analyze --project-root samples/java-spring-docker benchmarks/04-jep483-aot-cache/results/raw.csv --baseline benchmarks/04-jep483-aot-cache/results/baseline.json --fail-on-regression-above 20
 ```
+
+Benchmark commands are optional evidence workflows and require benchmark extras.
+Use `samples/java-spring-docker/benchmarks/reference/v1/summary.json` as a versioned baseline example.
 
 ## Config file (`.springdocker.toml`)
 

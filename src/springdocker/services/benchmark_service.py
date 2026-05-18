@@ -8,6 +8,15 @@ from ..compare import compare_summaries, format_delta_json, format_delta_table
 from ..regression import RegressionViolation, detect_regressions, load_summaries
 
 
+def require_benchmark_dependencies() -> None:
+    try:
+        import requests  # noqa: F401
+    except ModuleNotFoundError as exc:
+        raise ValueError(
+            "benchmark subsystem is optional; install springdocker with benchmark extras: pip install 'springdocker[benchmark]'"
+        ) from exc
+
+
 def resolve_path(project_root: Path, raw_path: str) -> Path:
     path = Path(raw_path)
     if not path.is_absolute():

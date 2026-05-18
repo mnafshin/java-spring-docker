@@ -120,6 +120,7 @@ def cmd_benchmark_compare(
     scenario: str | None,
 ) -> int:
     try:
+        benchmark_service.require_benchmark_dependencies()
         rendered = benchmark_service.render_comparison(
             project_root=project_root,
             raw_csv=raw_csv,
@@ -307,6 +308,7 @@ def cmd_benchmark_generate(
     use_legacy_scripts: bool,
 ) -> int:
     try:
+        benchmark_service.require_benchmark_dependencies()
         info = inspect_project(project_root, build_tool)
     except ValueError as exc:
         print_error(str(exc))
@@ -348,6 +350,7 @@ def cmd_benchmark_run(
     max_workers: int = 1,
 ) -> int:
     try:
+        benchmark_service.require_benchmark_dependencies()
         info = inspect_project(project_root, build_tool)
     except ValueError as exc:
         print_error(str(exc))
@@ -408,6 +411,7 @@ def cmd_benchmark_analyze(
     fail_on_regression_above: float | None,
 ) -> int:
     try:
+        benchmark_service.require_benchmark_dependencies()
         outcome = benchmark_service.analyze_csv(
             project_root=project_root,
             raw_csv=raw_csv,
