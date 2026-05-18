@@ -5,11 +5,11 @@ import csv
 import socket
 import subprocess
 import time
+import urllib.error
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
-
-import requests
 
 from springdocker.benchmarks.generate import (
     EXPECTED_CSV_HEADER,
@@ -101,10 +101,10 @@ def _wait_readiness(base_url: str, timeout_seconds: float = 40.0) -> int:
     start = time.time()
     while time.time() - start < timeout_seconds:
         try:
-            response = requests.get(base_url, timeout=2.0)
-            if response.status_code < 400:
-                return int((time.time() - start) * 1000)
-        except requests.RequestException:
+            with urllib.request.urlopen(base_url, timeout=2.0) as response:
+                if response.status < 400:
+                    return int((time.time() - start) * 1000)
+        except (TimeoutError, urllib.error.URLError):
             pass
         time.sleep(0.25)
     return -1
