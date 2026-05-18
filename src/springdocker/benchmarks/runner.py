@@ -19,11 +19,7 @@ class RunnerOptions:
     profile: str
     runs_override: int | None
     skip_native: bool
-    native_duration: str | None
-    native_vus: int | None
-    native_cpu_work: int | None
     java_version: int
-    regenerate_scenarios: bool
 
 
 @dataclass(frozen=True)
@@ -76,15 +72,7 @@ def parse_runner_args(profile: str, extra_args: list[str]) -> RunnerOptions:
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--runs", type=int, default=None)
     parser.add_argument("--skip-native", action="store_true")
-    parser.add_argument("--native-duration", default=None)
-    parser.add_argument("--native-vus", type=int, default=None)
-    parser.add_argument("--native-cpu-work", type=int, default=None)
     parser.add_argument("--java-version", type=int, default=25)
-    parser.add_argument(
-        "--regenerate-scenarios",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-    )
     parsed, unknown = parser.parse_known_args(extra_args)
     if unknown:
         raise ValueError(f"unknown runner arguments: {' '.join(unknown)}")
@@ -92,11 +80,7 @@ def parse_runner_args(profile: str, extra_args: list[str]) -> RunnerOptions:
         profile=profile,
         runs_override=parsed.runs,
         skip_native=parsed.skip_native,
-        native_duration=parsed.native_duration,
-        native_vus=parsed.native_vus,
-        native_cpu_work=parsed.native_cpu_work,
         java_version=parsed.java_version,
-        regenerate_scenarios=parsed.regenerate_scenarios,
     )
 
 
