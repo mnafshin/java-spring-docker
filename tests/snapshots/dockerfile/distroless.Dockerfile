@@ -19,6 +19,7 @@ RUN chmod +x mvnw
 COPY src ./src
 RUN --mount=type=cache,sharing=locked,target=/root/.m2 ./mvnw -B -q package -DskipTests
 RUN java -Djarmode=layertools -jar /app/target/*.jar extract --destination /layers
+RUN cd /layers && java -XX:ArchiveClassesAtExit=/layers/app.jsa -Dspring.context.exit=onRefresh org.springframework.boot.loader.launch.JarLauncher || true
 RUN install -d /tmp/sbom && printf '{"spdxVersion":"SPDX-2.3","name":"springdocker-generated-image"}' > /tmp/sbom/spdx.json
 
 FROM --platform=$TARGETPLATFORM gcr.io/distroless/java21-debian12:nonroot@sha256:7e37784d94dccbf5ccb195c73b295f5ad00cd266512dfbac12eb9c3c28f8077d
@@ -30,6 +31,7 @@ COPY --from=build /layers/dependencies/ ./
 COPY --from=build /layers/spring-boot-loader/ ./
 COPY --from=build /layers/snapshot-dependencies/ ./
 COPY --from=build /layers/application/ ./
+COPY --from=build /layers/app.jsa /app/app.jsa
 LABEL org.opencontainers.image.source="${OCI_SOURCE}" \
       org.opencontainers.image.revision="${OCI_REVISION}" \
       org.opencontainers.image.created="${OCI_CREATED}"
@@ -37,5 +39,5 @@ USER nonroot
 COPY --from=build /tmp/sbom/spdx.json /usr/share/sbom/spdx.json
 ENV SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH}"
 STOPSIGNAL SIGTERM
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-XX:+ExitOnOutOfMemoryError", "-Djava.io.tmpdir=/tmp", "org.springframework.boot.loader.launch.JarLauncher"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-XX:+ExitOnOutOfMemoryError", "-Djava.io.tmpdir=/tmp", "-XX:SharedArchiveFile=/app/app.jsa", "org.springframework.boot.loader.launch.JarLauncher"]
 # Runtime hardening tip: run with --read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs /tmp

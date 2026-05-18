@@ -37,6 +37,7 @@ class DockerfileOptions:
     include_embedded_sbom: bool = True
     include_reproducible_controls: bool = True
     use_layered_jar: bool = True
+    enable_appcds: bool = True
 
 
 @dataclass(frozen=True)
@@ -143,6 +144,13 @@ def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
             if options.use_layered_jar
             else "",
             (
+                "RUN cd /layers && "
+                "java -XX:ArchiveClassesAtExit=/layers/app.jsa -Dspring.context.exit=onRefresh "
+                "org.springframework.boot.loader.launch.JarLauncher || true"
+            )
+            if options.use_layered_jar and options.enable_appcds
+            else "",
+            (
                 "RUN install -d /tmp/sbom && "
                 "printf '{\"spdxVersion\":\"SPDX-2.3\",\"name\":\"springdocker-generated-image\"}' > /tmp/sbom/spdx.json"
             )
@@ -194,6 +202,8 @@ def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
                     "COPY --from=build /layers/application/ ./",
                 ]
             )
+            if options.enable_appcds:
+                distroless_lines.append("COPY --from=build /layers/app.jsa /app/app.jsa")
         else:
             distroless_lines.append(f"COPY --from=build /app/{jar_path} app.jar")
         if options.include_oci_labels:
@@ -253,6 +263,8 @@ def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
                     f"COPY --from=build {chown_flag}/layers/application/ ./",
                 ]
             )
+            if options.enable_appcds:
+                temurin_lines.append(f"COPY --from=build {chown_flag}/layers/app.jsa /app/app.jsa")
         else:
             temurin_lines.append(f"COPY --from=build {'--chown=1001:1001 ' if options.non_root else ''}/app/{jar_path} app.jar")
         if options.include_oci_labels:
@@ -284,6 +296,8 @@ def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
             )
         )
 
+    if options.use_layered_jar and options.enable_appcds:
+        jvm_args.append("-XX:SharedArchiveFile=/app/app.jsa")
     entrypoint = ["java", *jvm_args, "org.springframework.boot.loader.launch.JarLauncher"] if options.use_layered_jar else ["java", *jvm_args, "-jar", "app.jar"]
     tail_lines: list[str] = []
     if options.non_root and options.runtime_image != "distroless":
@@ -472,6 +486,14 @@ def explain_dockerfile_text(text: str) -> dict[str, object]:
                 "name": "reproducible build controls",
                 "enabled": True,
                 "reason": "Uses SOURCE_DATE_EPOCH controls for build reproducibility.",
+            }
+        )
+    if "ArchiveClassesAtExit" in text or "SharedArchiveFile=/app/app.jsa" in text:
+        features.append(
+            {
+                "name": "AppCDS training run",
+                "enabled": True,
+                "reason": "Builds and uses a CDS archive for faster startup.",
             }
         )
 
