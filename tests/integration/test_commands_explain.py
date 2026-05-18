@@ -52,7 +52,7 @@ class ExplainCommandTests(unittest.TestCase):
             self.assertIn("| Field | Value |", output)
             self.assertIn("BuildKit cache", output)
 
-    def test_explain_missing_or_manual_dockerfile_fails(self) -> None:
+    def test_explain_manual_dockerfile_succeeds(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             manual = root / "Dockerfile.generated"
@@ -60,8 +60,9 @@ class ExplainCommandTests(unittest.TestCase):
             stdout = StringIO()
             with redirect_stdout(stdout):
                 code = cmd_explain(root, "Dockerfile.generated", "json")
-            self.assertEqual(code, EXIT_USAGE)
-            self.assertEqual(stdout.getvalue(), "")
+            self.assertEqual(code, EXIT_OK)
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["stage_count"], 1)
 
     def test_explain_missing_file_fails(self) -> None:
         with tempfile.TemporaryDirectory() as td:

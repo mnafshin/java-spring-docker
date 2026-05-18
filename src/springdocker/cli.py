@@ -56,7 +56,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_common_options(inspect)
     inspect.add_argument("--format", choices=["table", "json"], default="table")
 
-    explain = sub.add_parser("explain", help="Explain a springdocker-generated Dockerfile")
+    explain = sub.add_parser("explain", help="Explain a Dockerfile")
     add_common_options(explain)
     explain.add_argument("dockerfile", nargs="?", default="Dockerfile.generated")
     explain.add_argument("--format", choices=["table", "json"], default="table")
