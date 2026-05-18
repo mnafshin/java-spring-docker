@@ -58,12 +58,23 @@ class CliParseTests(unittest.TestCase):
     def test_dockerfile_generate_parse_internal_flags(self) -> None:
         parser = build_parser()
         args = parser.parse_args(
-            ["dockerfile", "generate", "--output", "Dockerfile.prod", "--java-version", "21", "--use-legacy-scripts"]
+            [
+                "dockerfile",
+                "generate",
+                "--output",
+                "Dockerfile.prod",
+                "--java-version",
+                "21",
+                "--recipe",
+                "spring-aot",
+                "--use-legacy-scripts",
+            ]
         )
         self.assertEqual(args.command, "dockerfile")
         self.assertEqual(args.dockerfile_command, "generate")
         self.assertEqual(args.output, "Dockerfile.prod")
         self.assertEqual(args.java_version, 21)
+        self.assertEqual(args.recipe, "spring-aot")
         self.assertTrue(args.use_legacy_scripts)
 
     def test_benchmark_run_parse(self) -> None:

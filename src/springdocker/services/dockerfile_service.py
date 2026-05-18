@@ -76,11 +76,13 @@ def generate_dockerfile(
     build_tool: str,
     java_version: int,
     must_have_modules_file: str | None,
+    recipe: str = "jvm-balanced",
 ) -> GeneratedDockerfile:
     must_have_modules = parse_must_have_modules(project_root, must_have_modules_file)
     actuator_healthcheck = "/actuator/health/readiness" if _project_has_actuator_dependency(project_root) else None
     options = DockerfileOptions(
         build_tool=build_tool,
+        recipe=recipe,
         java_version=java_version,
         must_have_modules=must_have_modules,
         healthcheck_path=actuator_healthcheck,

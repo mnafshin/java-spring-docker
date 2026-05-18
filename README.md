@@ -63,7 +63,7 @@ springdocker inspect --project-root samples/java-spring-docker --format json
 springdocker explain --project-root samples/java-spring-docker Dockerfile.generated --format json
 springdocker benchmark compare --project-root samples/java-spring-docker samples/java-spring-docker/benchmarks/03-custom-jre-jlink/results/raw.csv --baseline-variant with-jlink-runtime
 springdocker init --project-root samples/java-spring-docker --build-tool maven
-springdocker dockerfile generate --project-root samples/java-spring-docker --output Dockerfile.generated
+springdocker dockerfile generate --project-root samples/java-spring-docker --output Dockerfile.generated --recipe jvm-balanced
 springdocker benchmark generate --project-root samples/java-spring-docker --java-version 25
 springdocker benchmark run --project-root samples/java-spring-docker --profile quick
 springdocker benchmark analyze --project-root samples/java-spring-docker samples/java-spring-docker/benchmarks/04-custom-jre-jlink/results/raw.csv

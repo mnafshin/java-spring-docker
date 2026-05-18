@@ -241,6 +241,7 @@ def cmd_dockerfile_generate(
     must_have_modules_file: str | None,
     extra_args: list[str],
     use_legacy_scripts: bool,
+    recipe: str = "jvm-balanced",
 ) -> int:
     try:
         info = inspect_project(project_root, build_tool)
@@ -249,6 +250,9 @@ def cmd_dockerfile_generate(
         return EXIT_USAGE
 
     if _use_legacy_scripts(use_legacy_scripts):
+        if recipe != "jvm-balanced":
+            print_error("--recipe is only supported by the internal generator (disable --use-legacy-scripts)")
+            return EXIT_USAGE
         script = project_root / "tools" / "dockerfile_wizard.py"
         if not script.exists():
             print_error(f"missing script: {script}")
@@ -272,6 +276,7 @@ def cmd_dockerfile_generate(
             build_tool=info.build_tool,
             java_version=java_version,
             must_have_modules_file=must_have_modules_file,
+            recipe=recipe,
         )
     except ValueError as exc:
         print_error(str(exc))

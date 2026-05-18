@@ -89,6 +89,12 @@ def build_parser() -> argparse.ArgumentParser:
     gen.add_argument("--output", default=None, help="Output Dockerfile path")
     gen.add_argument("--java-version", type=int, default=None, help="Java major version for generated Dockerfile")
     gen.add_argument(
+        "--recipe",
+        choices=["jvm-balanced", "spring-aot", "native-aot"],
+        default=None,
+        help="Dockerfile generation recipe preset",
+    )
+    gen.add_argument(
         "--wizard-arg",
         action="append",
         default=None,
@@ -231,6 +237,7 @@ def _handle_dockerfile_generate(args: argparse.Namespace, project_root: Path) ->
         cli_build_tool=args.build_tool,
         cli_output=args.output,
         cli_java_version=args.java_version,
+        cli_recipe=args.recipe,
         cli_wizard_args=args.wizard_arg,
         cli_use_legacy_scripts=args.use_legacy_scripts,
         loaded_config=loaded,
@@ -240,6 +247,7 @@ def _handle_dockerfile_generate(args: argparse.Namespace, project_root: Path) ->
         build_tool=resolved.build_tool,
         output=resolved.output,
         java_version=resolved.java_version,
+        recipe=resolved.recipe,
         must_have_modules_file=resolved.must_have_modules_file,
         extra_args=resolved.wizard_args,
         use_legacy_scripts=resolved.use_legacy_scripts,

@@ -67,6 +67,22 @@ class DockerfileServiceTests(unittest.TestCase):
             self.assertIn("HEALTHCHECK --interval=15s", rendered)
             self.assertIn("/actuator/health/readiness", rendered)
 
+    def test_generate_dockerfile_native_aot_recipe(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            generated = generate_dockerfile(
+                project_root=root,
+                output_path="Dockerfile.native",
+                build_tool="gradle",
+                java_version=21,
+                must_have_modules_file=None,
+                recipe="native-aot",
+            )
+            rendered = generated.path.read_text("utf-8")
+            self.assertIn("native-image-community:21", rendered)
+            self.assertIn("nativeCompile -x test", rendered)
+            self.assertIn('ENTRYPOINT ["/app/app"]', rendered)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -82,6 +82,7 @@ class ConfigTests(unittest.TestCase):
             "dockerfile": {
                 "output": "Dockerfile.ci",
                 "java_version": 21,
+                "recipe": "spring-aot",
                 "must_have_modules_file": "must-have.txt",
                 "legacy_scripts": True,
                 "wizard_args": ["--profile", "balanced"],
@@ -91,12 +92,13 @@ class ConfigTests(unittest.TestCase):
             },
         }
         doctor = resolve_doctor_config(None, loaded)
-        dockerfile = resolve_dockerfile_generate_config(None, None, None, None, None, loaded)
+        dockerfile = resolve_dockerfile_generate_config(None, None, None, None, None, None, loaded)
         bench_generate = resolve_benchmark_generate_config(None, None, None, loaded)
         self.assertEqual(doctor.build_tool, "maven")
         self.assertEqual(dockerfile.build_tool, "gradle")
         self.assertEqual(dockerfile.output, "Dockerfile.ci")
         self.assertEqual(dockerfile.java_version, 21)
+        self.assertEqual(dockerfile.recipe, "spring-aot")
         self.assertEqual(dockerfile.must_have_modules_file, "must-have.txt")
         self.assertTrue(dockerfile.use_legacy_scripts)
         self.assertEqual(bench_generate.java_version, 21)

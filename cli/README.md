@@ -38,7 +38,9 @@ springdocker doctor --project-root samples/java-spring-docker
 springdocker inspect --project-root samples/java-spring-docker --format json
 springdocker explain --project-root samples/java-spring-docker Dockerfile.generated --format json
 springdocker benchmark compare --project-root samples/java-spring-docker benchmarks/03-custom-jre-jlink/results/raw.csv --baseline-variant with-jlink-runtime --format json
-springdocker dockerfile generate --project-root samples/java-spring-docker --output Dockerfile.generated
+springdocker dockerfile generate --project-root samples/java-spring-docker --output Dockerfile.generated --recipe jvm-balanced
+springdocker dockerfile generate --project-root samples/java-spring-docker --recipe spring-aot
+springdocker dockerfile generate --project-root samples/java-spring-docker --recipe native-aot
 springdocker benchmark generate --project-root samples/java-spring-docker --java-version 25
 springdocker benchmark run --project-root samples/java-spring-docker --profile quick --runner-arg --skip-native
 springdocker benchmark analyze --project-root samples/java-spring-docker benchmarks/04-jep483-aot-cache/results/raw.csv --format table
@@ -67,6 +69,7 @@ build_tool = "maven"
 [dockerfile]
 output = "Dockerfile.generated"
 java_version = 25
+recipe = "jvm-balanced"
 must_have_modules_file = "must-have.txt"
 legacy_scripts = false
 wizard_args = []
