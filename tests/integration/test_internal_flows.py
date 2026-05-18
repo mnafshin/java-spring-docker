@@ -11,7 +11,13 @@ from tests.test_support import add_src_to_path
 
 add_src_to_path()
 
-from springdocker.commands import cmd_benchmark_generate, cmd_benchmark_run, cmd_dockerfile_generate, cmd_explain
+from springdocker.commands import (
+    cmd_benchmark_generate,
+    cmd_benchmark_run,
+    cmd_dockerfile_generate,
+    cmd_explain,
+    cmd_verify,
+)
 from springdocker.dockerfile import DockerfileOptions, build_dockerfile
 
 
@@ -120,6 +126,26 @@ class InternalFlowTests(unittest.TestCase):
         self.assertIn("gcr.io/distroless/java25-debian12:nonroot", dockerfile)
         self.assertNotIn("RUN groupadd", dockerfile)
         self.assertNotIn("RUN install -d -m 755 /app", dockerfile)
+
+    def test_verify_writes_json_report(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            dockerfile = root / "Dockerfile.generated"
+            dockerfile.write_text("FROM scratch\n", encoding="utf-8")
+            (root / "sbom.spdx.json").write_text('{"spdxVersion":"SPDX-2.3"}', encoding="utf-8")
+            report = root / "verify.json"
+            with patch("springdocker.services.verify_service.shutil.which", return_value=None):
+                code = cmd_verify(
+                    project_root=root,
+                    dockerfile_path="Dockerfile.generated",
+                    image=None,
+                    smoke_url=None,
+                    output_format="json",
+                    output_path="verify.json",
+                )
+            self.assertEqual(code, 0)
+            self.assertTrue(report.exists())
+            self.assertIn('"overall": "passed"', report.read_text(encoding="utf-8"))
 
     def test_benchmark_run_rejects_reproducibility_controls_with_legacy_scripts(self) -> None:
         with tempfile.TemporaryDirectory() as td:

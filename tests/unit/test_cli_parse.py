@@ -36,6 +36,17 @@ class CliParseTests(unittest.TestCase):
         self.assertEqual(args.dockerfile, "Dockerfile.generated")
         self.assertEqual(args.format, "json")
 
+    def test_verify_parse(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(
+            ["verify", "--dockerfile", "Dockerfile.generated", "--image", "demo:latest", "--format", "sarif", "--output", "verify.sarif"]
+        )
+        self.assertEqual(args.command, "verify")
+        self.assertEqual(args.dockerfile, "Dockerfile.generated")
+        self.assertEqual(args.image, "demo:latest")
+        self.assertEqual(args.format, "sarif")
+        self.assertEqual(args.output, "verify.sarif")
+
     def test_compare_parse(self) -> None:
         parser = build_parser()
         args = parser.parse_args(["benchmark", "compare", "results/raw.csv", "--baseline-variant", "with-cache"])

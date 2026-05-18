@@ -13,6 +13,14 @@ from .errors import EXIT_FAILURE, EXIT_OK, EXIT_USAGE, print_error, print_warnin
 from .project_detect import inspect_project
 from .regression import format_regression_json, format_regression_table
 from .services import benchmark_service, dockerfile_service, project_service
+from .services.verify_service import (
+    VerifyContext,
+    render_verify_json,
+    render_verify_junit,
+    render_verify_sarif,
+    render_verify_table,
+    run_verification,
+)
 
 
 def run_checked(command: list[str], cwd: Path) -> int:
@@ -138,6 +146,51 @@ def cmd_explain(project_root: Path, dockerfile_path: str, output_format: str) ->
     else:
         print(_render_explain_table(payload))
     return EXIT_OK
+
+
+def cmd_verify(
+    project_root: Path,
+    dockerfile_path: str,
+    image: str | None,
+    smoke_url: str | None,
+    output_format: str,
+    output_path: str | None,
+) -> int:
+    path = Path(dockerfile_path)
+    if not path.is_absolute():
+        path = project_root / path
+    if not path.exists():
+        print_error(f"missing Dockerfile: {path}")
+        return EXIT_USAGE
+
+    outcome = run_verification(
+        VerifyContext(
+            project_root=project_root,
+            dockerfile_path=path,
+            image=image,
+            smoke_url=smoke_url,
+        )
+    )
+
+    if output_format == "json":
+        rendered = render_verify_json(outcome)
+    elif output_format == "junit":
+        rendered = render_verify_junit(outcome)
+    elif output_format == "sarif":
+        rendered = render_verify_sarif(outcome)
+    else:
+        rendered = render_verify_table(outcome)
+
+    if output_path is not None:
+        destination = Path(output_path)
+        if not destination.is_absolute():
+            destination = project_root / destination
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(rendered + ("\n" if not rendered.endswith("\n") else ""), encoding="utf-8")
+        print(f"wrote verification report: {destination}")
+    else:
+        print(rendered)
+    return EXIT_FAILURE if outcome.failed else EXIT_OK
 
 
 def cmd_init(

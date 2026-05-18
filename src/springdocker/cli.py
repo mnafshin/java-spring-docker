@@ -13,6 +13,7 @@ from .commands import (
     cmd_explain,
     cmd_init,
     cmd_inspect,
+    cmd_verify,
 )
 from .config import (
     load_config,
@@ -59,6 +60,14 @@ def build_parser() -> argparse.ArgumentParser:
     add_common_options(explain)
     explain.add_argument("dockerfile", nargs="?", default="Dockerfile.generated")
     explain.add_argument("--format", choices=["table", "json"], default="table")
+
+    verify = sub.add_parser("verify", help="Run verification checks against a Dockerfile and project context")
+    add_common_options(verify, with_build_tool=False)
+    verify.add_argument("--dockerfile", default="Dockerfile.generated")
+    verify.add_argument("--image", default=None, help="Optional built image reference for dive/cosign checks")
+    verify.add_argument("--smoke-url", default=None, help="Optional HTTP endpoint for smoke verification")
+    verify.add_argument("--format", choices=["table", "json", "junit", "sarif"], default="table")
+    verify.add_argument("--output", default=None, help="Write verification report to file")
 
     dockerfile = sub.add_parser("dockerfile", help="Dockerfile operations")
     dockerfile_sub = dockerfile.add_subparsers(dest="dockerfile_command", required=True)
@@ -193,6 +202,16 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "explain":
         return cmd_explain(project_root=project_root, dockerfile_path=args.dockerfile, output_format=args.format)
+
+    if args.command == "verify":
+        return cmd_verify(
+            project_root=project_root,
+            dockerfile_path=args.dockerfile,
+            image=args.image,
+            smoke_url=args.smoke_url,
+            output_format=args.format,
+            output_path=args.output,
+        )
 
     if args.command == "dockerfile" and args.dockerfile_command == "generate":
         loaded = load_config(project_root / ".springdocker.toml")
