@@ -1,5 +1,9 @@
 # Native image roadmap
 
+> **NOT IMPLEMENTED YET**
+>
+> This page is roadmap content and does not describe currently shipped `springdocker` functionality.
+
 `springdocker` does not ship a native-image workflow yet, but the current benchmark structure leaves a clear path for it.
 
 ## Feasibility

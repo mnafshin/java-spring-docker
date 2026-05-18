@@ -1,5 +1,9 @@
 # Binary distribution
 
+> **NOT IMPLEMENTED YET**
+>
+> This page is roadmap content and does not describe currently shipped `springdocker` functionality.
+
 `springdocker` is a Python CLI, so the practical distribution channels are package managers, self-contained launchers, and a containerized runtime.
 
 ## Channels

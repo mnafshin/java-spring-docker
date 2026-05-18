@@ -106,26 +106,32 @@ This repository currently targets:
 
 ## Project docs
 
+### Implemented docs
+
 - `docs/architecture.md`
 - `docs/benchmark-methodology.md`
 - `docs/benchmark-comparison.md`
-- `docs/example-gallery.md`
 - `docs/golden-samples.md`
-- `docs/benchmark-dashboard.md`
 - `docs/extensions.md`
-- `docs/native-image-roadmap.md`
-- `docs/distribution.md`
-- `docs/compatibility-matrix.md`
 - `docs/security-hardening.md`
 - `docs/observability.md`
 - `docs/kubernetes.md`
 - `docs/adr/README.md`
 - `docs/multiarch.md`
 - `docs/onboarding.md`
+- `docs/troubleshooting.md`
 - `docs/jvm-optimization.md`
 - `ROADMAP.md`
 - `SECURITY.md`
 - `CONTRIBUTING.md`
+
+### Roadmap docs (not implemented yet)
+
+- `docs/example-gallery.md`
+- `docs/benchmark-dashboard.md`
+- `docs/native-image-roadmap.md`
+- `docs/distribution.md`
+- `docs/compatibility-matrix.md`
 
 ## Comparison with adjacent tools
 

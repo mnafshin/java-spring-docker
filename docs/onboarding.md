@@ -23,6 +23,7 @@
 - `cli/README.md`
 - `docs/architecture.md`
 - `docs/benchmark-methodology.md`
+- `docs/troubleshooting.md`
 
 ## Common workflows
 

@@ -1,5 +1,9 @@
 # Compatibility matrix
 
+> **NOT IMPLEMENTED YET**
+>
+> This page is roadmap content and does not describe currently shipped `springdocker` functionality.
+
 This repository documents the stack combinations that `springdocker` is designed to handle today.
 
 | Component | Supported range | Notes |

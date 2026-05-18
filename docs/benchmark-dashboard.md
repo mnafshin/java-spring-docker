@@ -1,5 +1,9 @@
 # Benchmark dashboard
 
+> **NOT IMPLEMENTED YET**
+>
+> This page is roadmap content and does not describe currently shipped `springdocker` functionality.
+
 `docs/presentation/index.html` is the generated benchmark dashboard for this repository.
 
 ## What it shows

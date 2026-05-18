@@ -1,5 +1,9 @@
 # Example gallery
 
+> **NOT IMPLEMENTED YET**
+>
+> This page is roadmap content and does not describe currently shipped `springdocker` functionality.
+
 This gallery collects representative generated outputs so you can see the main `springdocker` modes side by side.
 
 ## Dockerfile examples
