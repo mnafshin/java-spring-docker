@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "enabledManagers": ["dockerfile"],
+  "regexManagers": [
+    {
+      "fileMatch": ["(^|/)Dockerfile(\\..*)?$"],
+      "matchStrings": [
+        "FROM --platform=\\$BUILDPLATFORM (?<depName>eclipse-temurin):(?<currentValue>\\d+-jdk)@(?<currentDigest>sha256:[a-f0-9]{64})",
+        "FROM --platform=\\$TARGETPLATFORM (?<depName>eclipse-temurin):(?<currentValue>\\d+-jre)@(?<currentDigest>sha256:[a-f0-9]{64})",
+        "FROM --platform=\\$TARGETPLATFORM (?<depName>gcr\\.io/distroless/base-debian12):(?<currentValue>nonroot)@(?<currentDigest>sha256:[a-f0-9]{64})",
+        "FROM --platform=\\$TARGETPLATFORM (?<depName>gcr\\.io/distroless/java\\d+-debian12):(?<currentValue>nonroot)@(?<currentDigest>sha256:[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["regex"],
+      "groupName": "base-image-digests"
+    }
+  ]
+}

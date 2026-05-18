@@ -9,7 +9,7 @@ ARG OCI_SOURCE=""
 ARG OCI_REVISION=""
 ARG OCI_CREATED=""
 
-FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk AS build
+FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk@sha256:c2b7ea21649875fb9052237ac4e3cd4ef63968a2a389a0a1b1a72a5e53e5c93f AS build
 WORKDIR /app
 COPY mvnw pom.xml ./
 COPY .mvn ./.mvn
@@ -17,7 +17,7 @@ RUN chmod +x mvnw
 COPY src ./src
 RUN --mount=type=cache,sharing=locked,target=/root/.m2 ./mvnw -B -q package -DskipTests
 
-FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk AS jre-builder
+FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk@sha256:c2b7ea21649875fb9052237ac4e3cd4ef63968a2a389a0a1b1a72a5e53e5c93f AS jre-builder
 WORKDIR /jre
 COPY --from=build /app/target/*.jar app.jar
 RUN jdeps --ignore-missing-deps --recursive --multi-release 25 --print-module-deps app.jar > modules.txt
@@ -27,7 +27,7 @@ RUN set -eux; \
       | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -v '^$' | sort -u | paste -sd, -); \
     jlink --add-modules "$MODULES" --strip-debug --no-man-pages --no-header-files --compress=2 --output /opt/java
 
-FROM --platform=$TARGETPLATFORM eclipse-temurin:25-jre
+FROM --platform=$TARGETPLATFORM eclipse-temurin:25-jre@sha256:04262e8782d6b034ee5d7c1c5d4e8938fcf2063a76b4bfcd84e5d994d09c27bc
 RUN groupadd --system --gid 1001 javauser && useradd --system --uid 1001 --gid 1001 --no-create-home --shell /usr/sbin/nologin javauser
 RUN install -d -o 1001 -g 1001 -m 755 /app && install -d -o 1001 -g 1001 -m 1777 /tmp
 WORKDIR /app

@@ -43,8 +43,11 @@ The repo is split into three main surfaces:
 - Detects Maven or Gradle projects.
 - Writes a starter `.springdocker.toml` config.
 - Generates optimized Dockerfiles for the sample workflow.
+- Pins generated base images by digest when known.
 - Creates benchmark variants and runs benchmark suites.
 - Summarizes benchmark CSV output as a table or JSON.
+
+Digest update automation template: `.github/renovate.json`
 
 ## Quick start
 

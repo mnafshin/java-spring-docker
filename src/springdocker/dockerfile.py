@@ -3,6 +3,22 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+TEMURIN_JDK_DIGESTS = {
+    17: "sha256:b04a8c5d46e210873ffd1af6ad5f4d62c69ed3a6736993556eae60bba1373a23",
+    21: "sha256:b9142586f9712700c6c9e07adcedfb18608b1a3a056e4001423a3354adfa9d80",
+    25: "sha256:c2b7ea21649875fb9052237ac4e3cd4ef63968a2a389a0a1b1a72a5e53e5c93f",
+}
+TEMURIN_JRE_DIGESTS = {
+    17: "sha256:0d79988c68791ce864fe39d149ab1dc84f680539dca77ee7f6f3b041ad7f2f43",
+    21: "sha256:010e0a06bd4e0184dec58626afb3ba727b42c56c91b977e2f0a9e0837e0fa3fb",
+    25: "sha256:04262e8782d6b034ee5d7c1c5d4e8938fcf2063a76b4bfcd84e5d994d09c27bc",
+}
+DISTROLESS_JAVA_DIGESTS = {
+    17: "sha256:06484c2a9dcc9070aeafbc0fe752cb9f73bc0cea5c311f6a516e9010061998ad",
+    21: "sha256:7e37784d94dccbf5ccb195c73b295f5ad00cd266512dfbac12eb9c3c28f8077d",
+}
+DISTROLESS_BASE_DIGEST = "sha256:7a75a36f4bec82a7542c64195e402907486f9a4dd2f8797a976aa0cf31cfb470"
+
 
 @dataclass(frozen=True)
 class DockerfileOptions:
@@ -73,6 +89,12 @@ def _validate_options(options: DockerfileOptions) -> None:
         raise ValueError("runtime_image must be 'temurin' or 'distroless'")
 
 
+def _pin_image(tag: str, digest: str | None) -> str:
+    if digest is None:
+        return tag
+    return f"{tag}@{digest}"
+
+
 def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
     setup, build_cmd, jar_path = _build_setup(options.build_tool)
     build_step = (
@@ -105,9 +127,10 @@ def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
         sections.append(_section("ARG TARGETPLATFORM", "ARG BUILDPLATFORM", ""))
     if options.include_oci_labels:
         sections.append(_section('ARG OCI_SOURCE=""', 'ARG OCI_REVISION=""', 'ARG OCI_CREATED=""', ""))
+    build_base = _pin_image(f"eclipse-temurin:{options.java_version}-jdk", TEMURIN_JDK_DIGESTS.get(options.java_version))
     sections.append(
         _section(
-            f"FROM --platform=$BUILDPLATFORM eclipse-temurin:{options.java_version}-jdk AS build",
+            f"FROM --platform=$BUILDPLATFORM {build_base} AS build",
             "WORKDIR /app",
             *setup,
             build_step,
@@ -119,7 +142,7 @@ def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
         must_have_csv = ",".join(options.must_have_modules).replace('"', '\\"')
         sections.append(
             _section(
-                f"FROM --platform=$BUILDPLATFORM eclipse-temurin:{options.java_version}-jdk AS jre-builder",
+                f"FROM --platform=$BUILDPLATFORM {build_base} AS jre-builder",
                 "WORKDIR /jre",
                 f"COPY --from=build /app/{jar_path} app.jar",
                 (
@@ -137,9 +160,9 @@ def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
 
     if options.runtime_image == "distroless":
         runtime_base = (
-            "gcr.io/distroless/base-debian12:nonroot"
+            _pin_image("gcr.io/distroless/base-debian12:nonroot", DISTROLESS_BASE_DIGEST)
             if options.use_jlink
-            else f"gcr.io/distroless/java{options.java_version}-debian12:nonroot"
+            else _pin_image(f"gcr.io/distroless/java{options.java_version}-debian12:nonroot", DISTROLESS_JAVA_DIGESTS.get(options.java_version))
         )
         distroless_lines = [
             f"FROM --platform=$TARGETPLATFORM {runtime_base}",
@@ -169,7 +192,11 @@ def _compose_dockerfile(options: DockerfileOptions) -> DockerfileDocument:
             distroless_lines.append("USER nonroot")
         sections.append(_section(*distroless_lines))
     else:
-        temurin_lines = [f"FROM --platform=$TARGETPLATFORM eclipse-temurin:{options.java_version}-jre"]
+        runtime_base = _pin_image(
+            f"eclipse-temurin:{options.java_version}-jre",
+            TEMURIN_JRE_DIGESTS.get(options.java_version),
+        )
+        temurin_lines = [f"FROM --platform=$TARGETPLATFORM {runtime_base}"]
         if options.non_root:
             temurin_lines.extend(
                 [

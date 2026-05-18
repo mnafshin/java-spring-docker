@@ -45,7 +45,7 @@ class DockerfileServiceTests(unittest.TestCase):
             )
             destination = generated.path
             self.assertTrue(destination.exists())
-            self.assertIn("FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk AS build", destination.read_text("utf-8"))
+            self.assertIn("FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk@", destination.read_text("utf-8"))
             self.assertTrue((root / ".dockerignore").exists())
 
     def test_generate_dockerfile_adds_healthcheck_when_actuator_present(self) -> None:

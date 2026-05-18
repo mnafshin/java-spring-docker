@@ -47,7 +47,7 @@ class DockerfileSnapshotTests(unittest.TestCase):
     def test_distroless_snapshot(self) -> None:
         self.assert_snapshot(
             "distroless",
-            DockerfileOptions(build_tool="maven", java_version=25, runtime_image="distroless", use_jlink=False),
+            DockerfileOptions(build_tool="maven", java_version=21, runtime_image="distroless", use_jlink=False),
         )
 
 
