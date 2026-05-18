@@ -46,6 +46,26 @@ class DockerfileServiceTests(unittest.TestCase):
             destination = generated.path
             self.assertTrue(destination.exists())
             self.assertIn("FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk AS build", destination.read_text("utf-8"))
+            self.assertTrue((root / ".dockerignore").exists())
+
+    def test_generate_dockerfile_adds_healthcheck_when_actuator_present(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "pom.xml").write_text(
+                "<project><dependencies><dependency><groupId>org.springframework.boot</groupId>"
+                "<artifactId>spring-boot-starter-actuator</artifactId></dependency></dependencies></project>",
+                encoding="utf-8",
+            )
+            generated = generate_dockerfile(
+                project_root=root,
+                output_path="Dockerfile.generated",
+                build_tool="maven",
+                java_version=21,
+                must_have_modules_file=None,
+            )
+            rendered = generated.path.read_text("utf-8")
+            self.assertIn("HEALTHCHECK --interval=15s", rendered)
+            self.assertIn("/actuator/health/readiness", rendered)
 
 
 if __name__ == "__main__":

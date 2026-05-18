@@ -7,6 +7,19 @@ from pathlib import Path
 from ..dockerfile import DockerfileOptions, build_dockerfile, explain_dockerfile_text
 from ..plugins import apply_dockerfile_mutators
 
+DEFAULT_DOCKERIGNORE = (
+    ".git",
+    ".gitignore",
+    ".venv",
+    "__pycache__",
+    "*.pyc",
+    "target",
+    "build",
+    ".idea",
+    ".vscode",
+    ".DS_Store",
+)
+
 
 def resolve_path(project_root: Path, raw_path: str) -> Path:
     path = Path(raw_path)
@@ -38,6 +51,25 @@ def parse_must_have_modules(project_root: Path, must_have_modules_file: str | No
     return tuple(parsed)
 
 
+def _project_has_actuator_dependency(project_root: Path) -> bool:
+    for descriptor in ("pom.xml", "build.gradle", "build.gradle.kts"):
+        path = project_root / descriptor
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        if "spring-boot-starter-actuator" in text:
+            return True
+    return False
+
+
+def ensure_default_dockerignore(project_root: Path) -> Path:
+    destination = project_root / ".dockerignore"
+    if destination.exists():
+        return destination
+    destination.write_text("\n".join(DEFAULT_DOCKERIGNORE) + "\n", encoding="utf-8")
+    return destination
+
+
 def generate_dockerfile(
     project_root: Path,
     output_path: str,
@@ -46,10 +78,12 @@ def generate_dockerfile(
     must_have_modules_file: str | None,
 ) -> GeneratedDockerfile:
     must_have_modules = parse_must_have_modules(project_root, must_have_modules_file)
+    actuator_healthcheck = "/actuator/health/readiness" if _project_has_actuator_dependency(project_root) else None
     options = DockerfileOptions(
         build_tool=build_tool,
         java_version=java_version,
         must_have_modules=must_have_modules,
+        healthcheck_path=actuator_healthcheck,
     )
     generated = apply_dockerfile_mutators(
         dockerfile_text=build_dockerfile(options),
@@ -58,6 +92,7 @@ def generate_dockerfile(
     destination = resolve_path(project_root, output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(generated.dockerfile_text, encoding="utf-8")
+    ensure_default_dockerignore(project_root)
     return GeneratedDockerfile(path=destination, plugin_warnings=generated.warnings)
 
 

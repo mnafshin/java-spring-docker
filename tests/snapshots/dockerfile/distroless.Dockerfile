@@ -5,6 +5,10 @@
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 
+ARG OCI_SOURCE=""
+ARG OCI_REVISION=""
+ARG OCI_CREATED=""
+
 FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk AS build
 WORKDIR /app
 COPY mvnw pom.xml ./
@@ -19,6 +23,10 @@ VOLUME /tmp
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
 EXPOSE 8081
+LABEL org.opencontainers.image.source="${OCI_SOURCE}" \
+      org.opencontainers.image.revision="${OCI_REVISION}" \
+      org.opencontainers.image.created="${OCI_CREATED}"
 USER nonroot
+STOPSIGNAL SIGTERM
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-XX:+ExitOnOutOfMemoryError", "-Djava.io.tmpdir=/tmp", "-jar", "app.jar"]
 # Runtime hardening tip: run with --read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs /tmp
